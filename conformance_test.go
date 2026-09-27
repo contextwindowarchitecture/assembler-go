@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,7 +15,7 @@ import (
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
 var pending = map[string]bool{
-	"admission-reasons": true, "budget-droppable-order": true,
+	"budget-droppable-order":  true,
 	"budget-margin-protected": true, "budget-margin-rounding": true,
 	"budget-margin": true, "budget-omit-after-variants": true,
 	"budget-protected-variants": true, "budget-route-order": true,
@@ -22,7 +23,7 @@ var pending = map[string]bool{
 	"budget-slot-caps": true, "budget-slot-floor-refused": true,
 	"budget-slot-floor-under-cap": true, "budget-slot-floor": true,
 	"budget-token-caps": true, "budget-variant-choice": true,
-	"capability-policy-kind": true, "conflict-fact": true,
+	"conflict-fact":        true,
 	"conflict-instruction": true, "conflict-refused": true,
 	"conflict-request-context": true, "conflict-required-slot-first": true,
 	"conflict-surfaced-shed": true, "dedupe-evidence-required": true,
@@ -34,8 +35,8 @@ var pending = map[string]bool{
 	"messages-budget": true,
 	"messages-render": true, "ordering-astral-ids": true,
 	"placement-protected-unplaced": true, "placement-required-slot-first": true,
-	"placement-unplaced-slot": true, "protected-over-budget": true,
-	"protected-over-cap": true, "protected-over-slot-cap": true,
+	"protected-over-budget": true,
+	"protected-over-cap":    true, "protected-over-slot-cap": true,
 	"render-attribute-escaping": true, "required-instructions-missing": true,
 	"required-slot-missing": true, "supersede-evidence-required": true,
 	"supersede-exemptions": true, "supersede-observations": true,
@@ -55,26 +56,7 @@ func TestConformanceCases(t *testing.T) {
 		id := filepath.Base(filepath.Dir(path))
 		seen[id] = true
 		t.Run(id, func(t *testing.T) {
-			raw, err := os.ReadFile(path)
-			if err != nil {
-				t.Fatal(err)
-			}
-			result, err := Assemble(raw, Options{})
-			if err != nil {
-				var unsupported *UnsupportedComponentError
-				if errors.As(err, &unsupported) {
-					t.Skip(err)
-				}
-				if pending[id] {
-					return
-				}
-				t.Fatal(err)
-			}
-			if pending[id] {
-				t.Fatal("pending case now passes; remove it from pending")
-			}
-			assertCasePayload(t, filepath.Dir(path), result.Payload)
-			assertCaseTrace(t, filepath.Dir(path), result.Trace)
+			runConformanceCase(t, path, id)
 		})
 	}
 	for id := range pending {
@@ -84,54 +66,78 @@ func TestConformanceCases(t *testing.T) {
 	}
 }
 
-func assertCasePayload(t *testing.T, directory string, payload []byte) {
+func runConformanceCase(t *testing.T, path, id string) {
 	t.Helper()
-	want, err := os.ReadFile(filepath.Join(directory, "expected.payload.txt"))
-	if err == nil && !bytes.Equal(payload, want) {
-		t.Fatal("payload bytes differ")
-	}
-	if err != nil && !os.IsNotExist(err) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if os.IsNotExist(err) && payload != nil {
-		t.Fatal("refusal produced a payload")
+	result, err := Assemble(raw, Options{})
+	if err != nil {
+		var unsupported *UnsupportedComponentError
+		if errors.As(err, &unsupported) {
+			t.Skip(err)
+		}
+		if pending[id] {
+			return
+		}
+		t.Fatal(err)
+	}
+	if pending[id] {
+		if err := compareCase(filepath.Dir(path), result); err != nil {
+			return
+		}
+		t.Fatal("pending case now passes; remove it from pending")
+	}
+	if err := compareCase(filepath.Dir(path), result); err != nil {
+		t.Fatal(err)
 	}
 }
 
-func assertCaseTrace(t *testing.T, directory string, trace map[string]any) {
-	t.Helper()
-	if trace == nil {
-		t.Fatal("assembly produced no trace")
+func compareCase(directory string, result Result) error {
+	wantPayload, err := os.ReadFile(filepath.Join(directory, "expected.payload.txt"))
+	if err == nil && !bytes.Equal(result.Payload, wantPayload) {
+		return fmt.Errorf("payload bytes differ")
+	}
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if os.IsNotExist(err) && result.Payload != nil {
+		return fmt.Errorf("refusal produced a payload")
+	}
+	if result.Trace == nil {
+		return fmt.Errorf("assembly produced no trace")
 	}
 	compiled, err := traceSchema()
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	if err := compiled.Validate(trace); err != nil {
-		t.Fatalf("trace fails schema: %v", err)
+	if err := compiled.Validate(result.Trace); err != nil {
+		return fmt.Errorf("trace fails schema: %w", err)
 	}
 	wantBody, err := os.ReadFile(filepath.Join(directory, "expected.trace.json"))
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
-	actualBody, err := json.Marshal(trace)
+	actualBody, err := json.Marshal(result.Trace)
 	if err != nil {
-		t.Fatal(err)
+		return err
 	}
 	var want, actual map[string]any
 	if err := json.Unmarshal(wantBody, &want); err != nil {
-		t.Fatal(err)
+		return err
 	}
 	if err := json.Unmarshal(actualBody, &actual); err != nil {
-		t.Fatal(err)
+		return err
 	}
 	delete(want, "trace_id")
 	delete(want, "timings")
 	delete(actual, "trace_id")
 	delete(actual, "timings")
 	if !reflect.DeepEqual(actual, want) {
-		t.Fatal("trace differs")
+		return fmt.Errorf("trace differs")
 	}
+	return nil
 }
 
 func TestImplementationIdentity(t *testing.T) {

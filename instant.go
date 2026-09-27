@@ -8,6 +8,11 @@ import (
 
 // compareInstants retains every fractional digit after normalizing the offset.
 func compareInstants(left, right string) (int, error) {
+	return compareInstantOffset(left, right, 0)
+}
+
+// compareInstantOffset compares left with right plus whole seconds, retaining fractions.
+func compareInstantOffset(left, right string, rightOffsetSeconds int64) (int, error) {
 	a, af, err := instantParts(left)
 	if err != nil {
 		return 0, err
@@ -16,8 +21,8 @@ func compareInstants(left, right string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	if a != b {
-		return cmp.Compare(a, b), nil
+	if a != b+rightOffsetSeconds {
+		return cmp.Compare(a, b+rightOffsetSeconds), nil
 	}
 	length := max(len(af), len(bf))
 	af += strings.Repeat("0", length-len(af))

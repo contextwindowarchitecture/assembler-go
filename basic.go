@@ -11,7 +11,6 @@ import (
 	"sync"
 
 	"github.com/contextwindowarchitecture/assembler-go/internal/generated"
-	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 type basicItem struct {
@@ -77,17 +76,18 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	}
 	sort.Slice(keys, func(i, j int) bool { return utf16Less(keys[i], keys[j]) })
 	for _, key := range keys {
-		if key != "route" && key != "version" && key != "producers" {
+		if key != "route" && key != "version" && key != "producers" && key != "slots" && key != "default_overrides" && key != "tier_upgrades" && key != "clock_skew_seconds" {
 			return Result{}, featureGap("route policy " + key)
 		}
 	}
-	if len(asArray(snapshot["conflicts"])) != 0 || snapshot["capabilities"] != nil {
-		return Result{}, featureGap("conflicts or capabilities")
+	if len(asArray(snapshot["conflicts"])) != 0 {
+		return Result{}, featureGap("conflicts")
 	}
-	items, excluded, err := admitBasic(snapshot, tokenizer)
+	admission, err := admit(snapshot, tokenizer)
 	if err != nil {
 		return Result{}, err
 	}
+	items, excluded := admission.items, admission.excluded
 	placed := map[string]bool{}
 	for _, rawPlacement := range asArray(asObject(snapshot["profile"])["placement"]) {
 		placed[asString(asObject(rawPlacement)["slot"])] = true
@@ -143,179 +143,18 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 			"route_policy_version": policy["version"], "tokenizer": tokenizerID,
 			"renderer": rendererID, "snapshot_digest": digest,
 		},
-		"defaults_filled": []any{},
+		"defaults_filled": admission.defaultsFilled,
 	}
 	return Result{Payload: payload, Trace: trace}, nil
 }
 
-type basicAdmission struct {
-	schema       *jsonschema.Schema
-	tokenizer    Tokenizer
-	defaults     map[string]map[string]any
-	producers    map[string]any
-	assemblyTime string
-	requestScope map[string]any
-	seenIDs      map[string]bool
-	items        []*basicItem
-	excluded     []any
-}
-
-func admitBasic(snapshot map[string]any, tokenizer Tokenizer) ([]*basicItem, []any, error) {
-	compiled, err := itemSchema()
-	if err != nil {
-		return nil, nil, err
-	}
-	defaults, err := slotDefaults()
-	if err != nil {
-		return nil, nil, err
-	}
-	a := &basicAdmission{
-		schema: compiled, tokenizer: tokenizer, defaults: defaults,
-		producers:    asObject(asObject(snapshot["route_policy"])["producers"]),
-		assemblyTime: asString(snapshot["assembly_time"]), requestScope: asObject(snapshot["scope"]),
-		seenIDs: map[string]bool{}, items: []*basicItem{}, excluded: []any{},
-	}
-	batches := append([]any(nil), asArray(snapshot["batches"])...)
-	sort.Slice(batches, func(i, j int) bool {
-		left := asString(asObject(asObject(batches[i])["producer"])["id"])
-		right := asString(asObject(asObject(batches[j])["producer"])["id"])
-		return utf16Less(left, right)
-	})
-	for _, rawBatch := range batches {
-		if err := a.addBatch(asObject(rawBatch)); err != nil {
-			return nil, nil, err
-		}
-	}
-	return a.items, a.excluded, nil
-}
-
-func (a *basicAdmission) addBatch(batch map[string]any) error {
-	producer := asObject(batch["producer"])
-	producerID, producerKind := asString(producer["id"]), asString(producer["kind"])
-	ruleValue, ok := a.producers[producerID]
-	if !ok || asObject(ruleValue)["kind"] != producerKind {
-		return featureGap("producer authentication exclusion")
-	}
-	if err := a.addProducerExclusions(asArray(batch["excluded"])); err != nil {
-		return err
-	}
-	allowedSlots := asArray(asObject(ruleValue)["slots"])
-	for _, rawItem := range asArray(batch["items"]) {
-		if err := a.addItem(rawItem, producerKind, allowedSlots); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (a *basicAdmission) addProducerExclusions(rawRows []any) error {
-	rows, err := sortedRows(rawRows, "item_id")
-	if err != nil {
-		return err
-	}
-	for _, rawRow := range rows {
-		row := asObject(rawRow)
-		id := asString(row["item_id"])
-		if a.seenIDs[id] {
-			return featureGap("duplicate producer exclusion id")
-		}
-		a.seenIDs[id] = true
-		a.excluded = append(a.excluded, row)
-	}
-	return nil
-}
-
-func (a *basicAdmission) addItem(rawItem any, producerKind string, allowedSlots []any) error {
-	if err := a.schema.Validate(rawItem); err != nil {
-		return featureGap("invalid item admission")
-	}
-	item := asObject(rawItem)
-	id, slot := asString(item["id"]), asString(item["slot"])
-	if a.seenIDs[id] {
-		return featureGap("duplicate item admission")
-	}
-	a.seenIDs[id] = true
-	allowed := false
-	for _, candidateSlot := range allowedSlots {
-		allowed = allowed || candidateSlot == slot
-	}
-	if !allowed || !basicKindSlotAllowed(producerKind, slot) {
-		return featureGap("producer slot admission")
-	}
-	if err := a.checkMetadata(item); err != nil {
-		return err
-	}
-	if err := a.checkTimeAndScope(item); err != nil {
-		return err
-	}
-	body := escapeXML(asString(item["body"]))
-	bodyTokens := a.tokenizer(body)
-	if bodyTokens < 0 {
-		return errors.New("tokenizer returned a negative count")
-	}
-	if cap, ok := item["token_budget"].(float64); ok && float64(bodyTokens) > cap {
-		return featureGap("item token cap")
-	}
-	a.items = append(a.items, &basicItem{id: id, slot: slot, body: body,
-		sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),
-		bodyTokens: bodyTokens})
-	return nil
-}
-
-func (a *basicAdmission) checkMetadata(item map[string]any) error {
-	for _, field := range []string{"token_budget", "variants", "conflict_policy", "lineage", "eligibility", "injection_risk"} {
-		if _, ok := item[field]; !ok {
-			return featureGap("item defaults")
-		}
-	}
-	if len(asArray(item["variants"])) != 0 || item["revoked_by"] != nil {
-		return featureGap("variants or revocation")
-	}
-	slot := asString(item["slot"])
-	slotDefault := a.defaults[slot]
-	if item["authority"] != slotDefault["authority"] || item["injection_risk"] != slotDefault["injection_risk"] {
-		return featureGap("authority or injection risk admission")
-	}
-	if strings.HasPrefix(slot, "governance.") && item["trust"] != "verified" {
-		return featureGap("governance trust admission")
-	}
-	if tier, ok := item["tier"].(string); ok && tier != slotDefault["tier"] {
-		return featureGap("tier admission")
-	}
-	return nil
-}
-
-func (a *basicAdmission) checkTimeAndScope(item map[string]any) error {
-	if itemScope, ok := item["scope"].(map[string]any); ok {
-		for key, value := range itemScope {
-			if a.requestScope[key] != value {
-				return featureGap("scope admission")
-			}
-		}
-	}
-	freshness, err := compareInstants(asString(item["freshness"]), a.assemblyTime)
-	if err != nil {
-		return err
-	}
-	if freshness > 0 {
-		return featureGap("future freshness admission")
-	}
-	if expires, ok := item["expires"].(string); ok {
-		remaining, err := compareInstants(expires, a.assemblyTime)
-		if err != nil {
-			return err
-		}
-		if remaining <= 0 {
-			return featureGap("expiration admission")
-		}
-	}
-	return nil
-}
-
 func basicKindSlotAllowed(kind, slot string) bool {
+	if strings.HasPrefix(slot, "state.") {
+		return kind == "state"
+	}
 	switch kind {
 	case "state":
-		return strings.HasPrefix(slot, "state.")
+		return false
 	case "memory":
 		return slot == "interaction.memory"
 	case "retrieval", "mcp":

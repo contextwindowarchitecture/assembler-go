@@ -26,8 +26,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy clock_skew_seconds"
+      "outcome": "passed"
     },
     {
       "id": "budget-droppable-order",
@@ -37,7 +36,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-margin",
@@ -46,7 +45,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-margin-protected",
@@ -56,7 +55,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-margin-rounding",
@@ -65,7 +64,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-omit-after-variants",
@@ -88,7 +87,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-route-order",
@@ -107,7 +106,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-slot-cap-before-pressure",
@@ -117,7 +116,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-slot-caps",
@@ -139,7 +138,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-slot-floor-refused",
@@ -149,7 +148,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-slot-floor-under-cap",
@@ -159,7 +158,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-token-caps",
@@ -171,7 +170,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: item token cap"
     },
     {
       "id": "budget-variant-choice",
@@ -181,7 +180,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "capability-policy-kind",
@@ -190,8 +189,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: conflicts or capabilities"
+      "outcome": "passed"
     },
     {
       "id": "conflict-fact",
@@ -278,7 +276,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "dedupe-exemptions",
@@ -301,7 +299,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "diversity-cap",
@@ -314,7 +312,7 @@
         "R-26"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "diversity-evidence-required",
@@ -429,7 +427,7 @@
         "R-23"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "placement-protected-unplaced",
@@ -440,7 +438,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: unplaced slot handling"
     },
     {
       "id": "placement-required-slot-first",
@@ -450,7 +448,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: unplaced slot handling"
     },
     {
       "id": "placement-unplaced-slot",
@@ -459,8 +457,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "outcome": "passed"
     },
     {
       "id": "protected-over-budget",
@@ -470,7 +467,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "protected-over-cap",
@@ -480,7 +477,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: item token cap"
     },
     {
       "id": "protected-over-slot-cap",
@@ -490,7 +487,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "rendered a payload where the case expects a refusal"
     },
     {
       "id": "render-attribute-escaping",
@@ -510,7 +507,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: required slot refusal"
     },
     {
       "id": "required-slot-missing",
@@ -557,7 +554,7 @@
         "R-25"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "threshold-beyond-2-53",
@@ -569,7 +566,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "tokenizer-estimate-utf8",
@@ -578,7 +575,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy slots"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     }
   ],
   "rejections": [

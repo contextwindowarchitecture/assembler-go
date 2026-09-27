@@ -88,7 +88,7 @@ type sortableRow struct {
 func sortedCandidates(items []any) ([]any, error) {
 	rows := make([]sortableRow, len(items))
 	for i, item := range items {
-		id, ok := asObject(item)["id"].(string)
+		id, ok := objectValue(item)["id"].(string)
 		rows[i] = sortableRow{value: item, id: id, valid: ok && !blank(id)}
 		if rows[i].valid {
 			encoded, err := jcs.Format(item)
