@@ -447,8 +447,7 @@
         "R-20",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: unplaced slot handling"
+      "outcome": "passed"
     },
     {
       "id": "placement-unplaced-slot",
@@ -506,8 +505,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: required slot refusal"
+      "outcome": "passed"
     },
     {
       "id": "required-slot-missing",

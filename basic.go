@@ -88,14 +88,9 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 		return Result{}, err
 	}
 	items, excluded := admission.items, admission.excluded
-	placed := map[string]bool{}
-	for _, rawPlacement := range asArray(asObject(snapshot["profile"])["placement"]) {
-		placed[asString(asObject(rawPlacement)["slot"])] = true
-	}
-	for _, item := range items {
-		if !placed[item.slot] {
-			return Result{}, featureGap("unplaced slot handling")
-		}
+	trace, err := basicTrace(snapshot, tokenizerID, rendererID, excluded, admission.defaultsFilled)
+	if err != nil {
+		return Result{}, err
 	}
 	for _, required := range []string{"governance.instructions", "interaction.query"} {
 		found := false
@@ -103,7 +98,17 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 			found = found || item.slot == required
 		}
 		if !found {
-			return Result{}, featureGap("required slot refusal")
+			trace["refused"] = map[string]any{"bool": true, "reason": "required_slot_missing"}
+			return Result{Trace: trace}, nil
+		}
+	}
+	placed := map[string]bool{}
+	for _, rawPlacement := range asArray(asObject(snapshot["profile"])["placement"]) {
+		placed[asString(asObject(rawPlacement)["slot"])] = true
+	}
+	for _, item := range items {
+		if !placed[item.slot] {
+			return Result{}, featureGap("unplaced slot handling")
 		}
 	}
 	payload, included, err := renderBasicXML(snapshot, items, tokenizer)
@@ -125,27 +130,34 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if float64((count*(100+margin)+99)/100) > budget["input"].(float64) {
 		return Result{}, featureGap("budget fitting")
 	}
+	hash := sha256.Sum256(payload)
+	trace["result"] = map[string]any{"input_tokens": count, "hash": hex.EncodeToString(hash[:])}
+	trace["included"] = included
+	return Result{Payload: payload, Trace: trace}, nil
+}
+
+func basicTrace(snapshot map[string]any, tokenizerID, rendererID string, excluded, defaultsFilled []any) (map[string]any, error) {
 	digest, err := snapshotDigest(snapshot)
 	if err != nil {
-		return Result{}, err
+		return nil, err
 	}
-	hash := sha256.Sum256(payload)
 	profile := asObject(snapshot["profile"])
+	policy := asObject(snapshot["route_policy"])
 	trace := map[string]any{
 		"trace_id": digest,
 		"profile":  map[string]any{"id": profile["id"], "version": profile["version"]},
-		"budget":   budget,
-		"result":   map[string]any{"input_tokens": count, "hash": hex.EncodeToString(hash[:])},
-		"included": included, "compressed": []any{}, "excluded": excluded,
+		"budget":   snapshot["budget"],
+		"result":   nil,
+		"included": []any{}, "compressed": []any{}, "excluded": excluded,
 		"conflicts": []any{}, "refused": map[string]any{"bool": false, "reason": nil},
 		"context": map[string]any{
 			"spec": profile["spec"], "assembly_time": snapshot["assembly_time"],
 			"route_policy_version": policy["version"], "tokenizer": tokenizerID,
 			"renderer": rendererID, "snapshot_digest": digest,
 		},
-		"defaults_filled": admission.defaultsFilled,
+		"defaults_filled": defaultsFilled,
 	}
-	return Result{Payload: payload, Trace: trace}, nil
+	return trace, nil
 }
 
 func basicKindSlotAllowed(kind, slot string) bool {
