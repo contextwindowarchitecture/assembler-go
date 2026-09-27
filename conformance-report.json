@@ -437,8 +437,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: unplaced slot handling"
+      "outcome": "passed"
     },
     {
       "id": "placement-required-slot-first",

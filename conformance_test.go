@@ -34,7 +34,6 @@ var pending = map[string]bool{
 	"evidence-request-context": true, "evidence-retrieve-narrower": true,
 	"messages-budget": true,
 	"messages-render": true, "ordering-astral-ids": true,
-	"placement-protected-unplaced": true,
 	"protected-over-budget": true,
 	"protected-over-cap":    true, "protected-over-slot-cap": true,
 	"render-attribute-escaping": true,

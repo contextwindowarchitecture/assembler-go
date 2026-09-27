@@ -14,8 +14,8 @@ import (
 )
 
 type basicItem struct {
-	id, slot, body, sourceVersion, eligibility string
-	bodyTokens                                 int
+	id, slot, body, sourceVersion, eligibility, tier string
+	bodyTokens                                       int
 }
 
 var (
@@ -92,24 +92,13 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	for _, required := range []string{"governance.instructions", "interaction.query"} {
-		found := false
-		for _, item := range items {
-			found = found || item.slot == required
-		}
-		if !found {
-			trace["refused"] = map[string]any{"bool": true, "reason": "required_slot_missing"}
-			return Result{Trace: trace}, nil
-		}
+	reason, err := basicRefusal(items, asObject(snapshot["profile"]))
+	if err != nil {
+		return Result{}, err
 	}
-	placed := map[string]bool{}
-	for _, rawPlacement := range asArray(asObject(snapshot["profile"])["placement"]) {
-		placed[asString(asObject(rawPlacement)["slot"])] = true
-	}
-	for _, item := range items {
-		if !placed[item.slot] {
-			return Result{}, featureGap("unplaced slot handling")
-		}
+	if reason != "" {
+		trace["refused"] = map[string]any{"bool": true, "reason": reason}
+		return Result{Trace: trace}, nil
 	}
 	payload, included, err := renderBasicXML(snapshot, items, tokenizer)
 	if err != nil {
@@ -134,6 +123,32 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	trace["result"] = map[string]any{"input_tokens": count, "hash": hex.EncodeToString(hash[:])}
 	trace["included"] = included
 	return Result{Payload: payload, Trace: trace}, nil
+}
+
+// basicRefusal evaluates the first two refusal conditions in registry order.
+func basicRefusal(items []*basicItem, profile map[string]any) (string, error) {
+	present := map[string]bool{}
+	for _, item := range items {
+		present[item.slot] = true
+	}
+	for _, required := range []string{"governance.instructions", "interaction.query"} {
+		if !present[required] {
+			return "required_slot_missing", nil
+		}
+	}
+	placed := map[string]bool{}
+	for _, raw := range asArray(profile["placement"]) {
+		placed[asString(asObject(raw)["slot"])] = true
+	}
+	for _, item := range items {
+		if !placed[item.slot] {
+			if item.tier != "protected" {
+				return "", featureGap("unplaced nonprotected item")
+			}
+			return "protected_slot_unplaced", nil
+		}
+	}
+	return "", nil
 }
 
 func basicTrace(snapshot map[string]any, tokenizerID, rendererID string, excluded, defaultsFilled []any) (map[string]any, error) {

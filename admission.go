@@ -454,7 +454,7 @@ func (a *admissionPass) include(item map[string]any) error {
 	a.result.items = append(a.result.items, &basicItem{
 		id: asString(item["id"]), slot: asString(item["slot"]), body: body,
 		sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),
-		bodyTokens: count,
+		bodyTokens: count, tier: effectiveTier(item, a.slotDefaults[asString(item["slot"])], a.policy, asString(item["slot"])),
 	})
 	return nil
 }
