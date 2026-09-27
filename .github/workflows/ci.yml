@@ -1,6 +1,5 @@
 # The vendored contract against the website commit it pins, and the committed conformance report against the
-# contract. Both jobs do nothing until the contract is vendored (PORTING.md, step 2). Add the port's own test
-# suite as a third job, on every runtime it supports; the commented block is the shape.
+# contract. Both jobs do nothing until the contract is vendored (PORTING.md, step 2).
 name: ci
 
 on:
@@ -11,17 +10,21 @@ permissions:
   contents: read
 
 jobs:
-  # test:
-  #   name: <suite> (Go ${{ matrix.version }})
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       version: ["<oldest supported>", "<newest>"]
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - run: go mod download
-  #     - run: go test ./...
+  test:
+    name: Go ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["1.26.x", "1.27.x"]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.version }}
+      - run: go mod download
+      - run: go build ./...
+      - run: go test ./...
 
   report:
     name: committed conformance report is complete and well-formed

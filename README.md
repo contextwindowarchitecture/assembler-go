@@ -2,7 +2,7 @@
 
 A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
 
-Status: in development. It passes none of the published conformance cases yet; `conformance-report.json` records the current run.
+Status: in development. The contract and conformance cases have not been vendored yet.
 
 ## Install
 
@@ -19,7 +19,7 @@ TODO: the call and its types, in the language's terms. What it must say:
 
 ## Requirements
 
-TODO: the runtime versions this package supports.
+Go 1.26 or newer.
 
 ## Development
 
