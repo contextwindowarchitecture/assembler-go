@@ -38,6 +38,7 @@ var (
 	schemaOnce          sync.Once
 	schema              *jsonschema.Schema
 	traceSchemaCompiled *jsonschema.Schema
+	itemSchemaCompiled  *jsonschema.Schema
 	schemaErr           error
 )
 
@@ -67,6 +68,9 @@ func snapshotSchema() (*jsonschema.Schema, error) {
 		if schemaErr == nil {
 			traceSchemaCompiled, schemaErr = compiler.Compile("https://contextwindowarchitecture.io/schema/trace.schema.json")
 		}
+		if schemaErr == nil {
+			itemSchemaCompiled, schemaErr = compiler.Compile("https://contextwindowarchitecture.io/schema/context_item.schema.json")
+		}
 	})
 	return schema, schemaErr
 }
@@ -74,6 +78,11 @@ func snapshotSchema() (*jsonschema.Schema, error) {
 func traceSchema() (*jsonschema.Schema, error) {
 	_, err := snapshotSchema()
 	return traceSchemaCompiled, err
+}
+
+func itemSchema() (*jsonschema.Schema, error) {
+	_, err := snapshotSchema()
+	return itemSchemaCompiled, err
 }
 
 func reject(format string, args ...any) error {

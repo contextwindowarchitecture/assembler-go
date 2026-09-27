@@ -31,7 +31,7 @@ var pending = map[string]bool{
 	"diversity-evidence-required": true, "diversity-exemptions": true,
 	"evidence-cap-omitted": true, "evidence-precompute-summary": true,
 	"evidence-request-context": true, "evidence-retrieve-narrower": true,
-	"fixture-three-slot": true, "messages-budget": true,
+	"messages-budget": true,
 	"messages-render": true, "ordering-astral-ids": true,
 	"placement-protected-unplaced": true, "placement-required-slot-first": true,
 	"placement-unplaced-slot": true, "protected-over-budget": true,
@@ -73,47 +73,64 @@ func TestConformanceCases(t *testing.T) {
 			if pending[id] {
 				t.Fatal("pending case now passes; remove it from pending")
 			}
-			wantPayload, readErr := os.ReadFile(filepath.Join(filepath.Dir(path), "expected.payload.txt"))
-			if readErr == nil && !bytes.Equal(result.Payload, wantPayload) {
-				t.Fatal("payload bytes differ")
-			}
-			if readErr != nil && !os.IsNotExist(readErr) {
-				t.Fatal(readErr)
-			}
-			if os.IsNotExist(readErr) && result.Payload != nil {
-				t.Fatal("refusal produced a payload")
-			}
-			wantTrace, err := os.ReadFile(filepath.Join(filepath.Dir(path), "expected.trace.json"))
-			if err != nil {
-				t.Fatal(err)
-			}
-			var want map[string]any
-			if err := json.Unmarshal(wantTrace, &want); err != nil {
-				t.Fatal(err)
-			}
-			if result.Trace == nil {
-				t.Fatal("assembly produced no trace")
-			}
-			compiled, err := traceSchema()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := compiled.Validate(result.Trace); err != nil {
-				t.Fatalf("trace fails schema: %v", err)
-			}
-			delete(want, "trace_id")
-			delete(want, "timings")
-			delete(result.Trace, "trace_id")
-			delete(result.Trace, "timings")
-			if !reflect.DeepEqual(result.Trace, want) {
-				t.Fatal("trace differs")
-			}
+			assertCasePayload(t, filepath.Dir(path), result.Payload)
+			assertCaseTrace(t, filepath.Dir(path), result.Trace)
 		})
 	}
 	for id := range pending {
 		if !seen[id] {
 			t.Errorf("pending id %q has no vendored case", id)
 		}
+	}
+}
+
+func assertCasePayload(t *testing.T, directory string, payload []byte) {
+	t.Helper()
+	want, err := os.ReadFile(filepath.Join(directory, "expected.payload.txt"))
+	if err == nil && !bytes.Equal(payload, want) {
+		t.Fatal("payload bytes differ")
+	}
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatal(err)
+	}
+	if os.IsNotExist(err) && payload != nil {
+		t.Fatal("refusal produced a payload")
+	}
+}
+
+func assertCaseTrace(t *testing.T, directory string, trace map[string]any) {
+	t.Helper()
+	if trace == nil {
+		t.Fatal("assembly produced no trace")
+	}
+	compiled, err := traceSchema()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := compiled.Validate(trace); err != nil {
+		t.Fatalf("trace fails schema: %v", err)
+	}
+	wantBody, err := os.ReadFile(filepath.Join(directory, "expected.trace.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	actualBody, err := json.Marshal(trace)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want, actual map[string]any
+	if err := json.Unmarshal(wantBody, &want); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(actualBody, &actual); err != nil {
+		t.Fatal(err)
+	}
+	delete(want, "trace_id")
+	delete(want, "timings")
+	delete(actual, "trace_id")
+	delete(actual, "timings")
+	if !reflect.DeepEqual(actual, want) {
+		t.Fatal("trace differs")
 	}
 }
 

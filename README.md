@@ -2,7 +2,7 @@
 
 A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
 
-Status: in development. The current report records 0/52 passing cases and 22/22 rejected invalid snapshots. Valid snapshots currently return an explicit implementation gap.
+Status: in development. The current report records 1/52 passing cases and 22/22 rejected invalid snapshots. Unimplemented assembly features return an explicit gap.
 
 ## Install
 
@@ -10,12 +10,9 @@ TODO: how to add the package to a project.
 
 ## Use
 
-TODO: the call and its types, in the language's terms. What it must say:
+`Assemble(snapshotJSON, Options{})` accepts the frozen snapshot as JSON bytes. It returns a `Result` with rendered UTF-8 `Payload` and a `Trace`. A refusal has a nil payload. Invalid snapshots return `SnapshotRejectedError` with no result; unknown component ids return `UnsupportedComponentError`. Callers can supply tokenizers in `Options.Tokenizers` for one call; the built-in tokenizer ids cannot be replaced.
 
-- `assemble(snapshot)` takes a snapshot in the shape of `schema/snapshot.schema.json`, the frozen assembly input (R-23), and returns the payload, the rendered UTF-8 bytes, or null when the assembly is refused (`trace.refused.reason` says why), together with a trace valid against `schema/trace.schema.json`.
-- A snapshot that fails its schemas or the snapshot checks is rejected with its problems in words: no payload and no trace (R-17).
-- A snapshot that names a tokenizer or renderer this package does not provide is unsupported, not invalid. The package provides the tokenizers `fixture-whitespace/v1` and `estimate-utf8/v1` and the renderers `fixture-xml/v1` and `cwa-messages/v1`; callers pass their model's tokenizer keyed by the id their snapshots name, and a built-in id cannot be redefined.
-- `trace_id` and `timings` may differ between runs of the same snapshot (R-23); everything else, the payload bytes included, is deterministic.
+The contract also requires refusals, conflict resolution, fitting, and `cwa-messages/v1`; those stages remain pending. The current case coverage is recorded in `conformance-report.json`.
 
 ## Requirements
 
@@ -40,10 +37,13 @@ Every reduction under budget pressure is its own fit test, and every fit test re
 ## Conformance
 
 ```sh
-go run ./cmd/conformance
+go build -o /tmp/cwa-adapter ./cmd/adapter
+python3 scripts/conformance.py --command /tmp/cwa-adapter \
+  --name github.com/contextwindowarchitecture/assembler-go --version 0.1.0 --language Go
+python3 scripts/check_report.py --allow-failures
 ```
 
-This runs every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json`, valid against `schema/conformance_report.schema.json`, and exits 1 unless every case passed and every rejection snapshot was rejected. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id` and `timings`. The committed report is the current run: a test fails when it goes stale. A case is skipped when its snapshot names a tokenizer or renderer this package does not provide.
+The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 while ordinary cases remain pending. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id` and `timings`. The committed report is the current run: a test fails when it goes stale.
 
 ## The contract
 

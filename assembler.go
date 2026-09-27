@@ -1,7 +1,5 @@
 package assembler
 
-import "errors"
-
 // Tokenizer counts the text a renderer emits.
 type Tokenizer func(string) int
 
@@ -30,8 +28,9 @@ func (e *UnsupportedComponentError) Error() string {
 
 // Assemble consumes a frozen JSON snapshot without external reads.
 func Assemble(raw []byte, options Options) (Result, error) {
-	if _, err := validateSnapshot(raw); err != nil {
+	snapshot, err := validateSnapshot(raw)
+	if err != nil {
 		return Result{}, err
 	}
-	return Result{}, errors.New("assembly pipeline is not implemented")
+	return assembleBasic(snapshot, options)
 }

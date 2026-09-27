@@ -27,7 +27,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy clock_skew_seconds"
     },
     {
       "id": "budget-droppable-order",
@@ -37,7 +37,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-margin",
@@ -46,7 +46,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-margin-protected",
@@ -56,7 +56,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-margin-rounding",
@@ -65,7 +65,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-omit-after-variants",
@@ -78,7 +78,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy parser"
     },
     {
       "id": "budget-protected-variants",
@@ -88,7 +88,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-route-order",
@@ -97,7 +97,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy fitting_order"
     },
     {
       "id": "budget-route-tiers",
@@ -107,7 +107,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-slot-cap-before-pressure",
@@ -117,7 +117,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-slot-caps",
@@ -129,7 +129,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy fitting_order"
     },
     {
       "id": "budget-slot-floor",
@@ -139,7 +139,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-slot-floor-refused",
@@ -149,7 +149,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-slot-floor-under-cap",
@@ -159,7 +159,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-token-caps",
@@ -171,7 +171,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "budget-variant-choice",
@@ -181,7 +181,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "capability-policy-kind",
@@ -191,7 +191,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: conflicts or capabilities"
     },
     {
       "id": "conflict-fact",
@@ -203,7 +203,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "conflict-instruction",
@@ -215,7 +215,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy on_unresolved_instruction"
     },
     {
       "id": "conflict-refused",
@@ -226,7 +226,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "conflict-request-context",
@@ -237,7 +237,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "conflict-required-slot-first",
@@ -247,7 +247,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "conflict-surfaced-shed",
@@ -257,7 +257,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "dedupe-evidence-required",
@@ -268,7 +268,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "dedupe-exact",
@@ -278,7 +278,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "dedupe-exemptions",
@@ -290,7 +290,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "dedupe-producer-reported",
@@ -301,7 +301,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "diversity-cap",
@@ -314,7 +314,7 @@
         "R-26"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "diversity-evidence-required",
@@ -325,7 +325,7 @@
         "R-26"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "diversity-exemptions",
@@ -339,7 +339,7 @@
         "R-26"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "evidence-cap-omitted",
@@ -351,7 +351,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "evidence-precompute-summary",
@@ -363,7 +363,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "evidence-request-context",
@@ -374,7 +374,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "evidence-retrieve-narrower",
@@ -386,7 +386,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "fixture-three-slot",
@@ -396,8 +396,7 @@
         "R-22",
         "R-23"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "outcome": "passed"
     },
     {
       "id": "messages-budget",
@@ -407,7 +406,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: cwa-messages rendering"
     },
     {
       "id": "messages-render",
@@ -418,7 +417,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: cwa-messages rendering"
     },
     {
       "id": "ordering-astral-ids",
@@ -430,7 +429,7 @@
         "R-23"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "placement-protected-unplaced",
@@ -441,7 +440,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "placement-required-slot-first",
@@ -451,7 +450,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "placement-unplaced-slot",
@@ -461,7 +460,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "protected-over-budget",
@@ -471,7 +470,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "protected-over-cap",
@@ -481,7 +480,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "protected-over-slot-cap",
@@ -491,7 +490,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "render-attribute-escaping",
@@ -500,7 +499,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy on_unresolved_instruction"
     },
     {
       "id": "required-instructions-missing",
@@ -511,7 +510,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "required-slot-missing",
@@ -522,7 +521,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy parser"
     },
     {
       "id": "supersede-evidence-required",
@@ -533,7 +532,7 @@
         "R-25"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy requires_evidence"
     },
     {
       "id": "supersede-exemptions",
@@ -546,7 +545,7 @@
         "R-25"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy facts"
     },
     {
       "id": "supersede-observations",
@@ -558,7 +557,7 @@
         "R-25"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "threshold-beyond-2-53",
@@ -570,7 +569,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     },
     {
       "id": "tokenizer-estimate-utf8",
@@ -579,7 +578,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly pipeline is not implemented"
+      "detail": "exited 1: assembly feature not implemented: route policy slots"
     }
   ],
   "rejections": [
