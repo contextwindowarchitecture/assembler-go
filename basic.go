@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/contextwindowarchitecture/assembler-go/internal/generated"
+	"github.com/santhosh-tekuri/jsonschema/v6"
 )
 
 type basicItem struct {
@@ -147,8 +148,20 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	return Result{Payload: payload, Trace: trace}, nil
 }
 
+type basicAdmission struct {
+	schema       *jsonschema.Schema
+	tokenizer    Tokenizer
+	defaults     map[string]map[string]any
+	producers    map[string]any
+	assemblyTime string
+	requestScope map[string]any
+	seenIDs      map[string]bool
+	items        []*basicItem
+	excluded     []any
+}
+
 func admitBasic(snapshot map[string]any, tokenizer Tokenizer) ([]*basicItem, []any, error) {
-	itemSchema, err := itemSchema()
+	compiled, err := itemSchema()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -156,112 +169,147 @@ func admitBasic(snapshot map[string]any, tokenizer Tokenizer) ([]*basicItem, []a
 	if err != nil {
 		return nil, nil, err
 	}
-	producers := asObject(asObject(snapshot["route_policy"])["producers"])
+	a := &basicAdmission{
+		schema: compiled, tokenizer: tokenizer, defaults: defaults,
+		producers:    asObject(asObject(snapshot["route_policy"])["producers"]),
+		assemblyTime: asString(snapshot["assembly_time"]), requestScope: asObject(snapshot["scope"]),
+		seenIDs: map[string]bool{}, items: []*basicItem{}, excluded: []any{},
+	}
 	batches := append([]any(nil), asArray(snapshot["batches"])...)
 	sort.Slice(batches, func(i, j int) bool {
 		left := asString(asObject(asObject(batches[i])["producer"])["id"])
 		right := asString(asObject(asObject(batches[j])["producer"])["id"])
 		return utf16Less(left, right)
 	})
-	seenIDs := map[string]bool{}
-	items := []*basicItem{}
-	excluded := []any{}
-	assemblyTime := asString(snapshot["assembly_time"])
-	requestScope := asObject(snapshot["scope"])
 	for _, rawBatch := range batches {
-		batch := asObject(rawBatch)
-		producer := asObject(batch["producer"])
-		producerID, producerKind := asString(producer["id"]), asString(producer["kind"])
-		ruleValue, ok := producers[producerID]
-		if !ok || asObject(ruleValue)["kind"] != producerKind {
-			return nil, nil, featureGap("producer authentication exclusion")
-		}
-		allowedSlots := asArray(asObject(ruleValue)["slots"])
-		rows, err := sortedRows(asArray(batch["excluded"]), "item_id")
-		if err != nil {
+		if err := a.addBatch(asObject(rawBatch)); err != nil {
 			return nil, nil, err
 		}
-		for _, rawRow := range rows {
-			row := asObject(rawRow)
-			id := asString(row["item_id"])
-			if seenIDs[id] {
-				return nil, nil, featureGap("duplicate producer exclusion id")
-			}
-			seenIDs[id] = true
-			excluded = append(excluded, row)
-		}
-		for _, rawItem := range asArray(batch["items"]) {
-			if err := itemSchema.Validate(rawItem); err != nil {
-				return nil, nil, featureGap("invalid item admission")
-			}
-			item := asObject(rawItem)
-			id, slot := asString(item["id"]), asString(item["slot"])
-			if seenIDs[id] {
-				return nil, nil, featureGap("duplicate item admission")
-			}
-			seenIDs[id] = true
-			allowed := false
-			for _, candidateSlot := range allowedSlots {
-				allowed = allowed || candidateSlot == slot
-			}
-			if !allowed || !basicKindSlotAllowed(producerKind, slot) {
-				return nil, nil, featureGap("producer slot admission")
-			}
-			for _, field := range []string{"token_budget", "variants", "conflict_policy", "lineage", "eligibility", "injection_risk"} {
-				if _, ok := item[field]; !ok {
-					return nil, nil, featureGap("item defaults")
-				}
-			}
-			if len(asArray(item["variants"])) != 0 || item["revoked_by"] != nil {
-				return nil, nil, featureGap("variants or revocation")
-			}
-			slotDefault := defaults[slot]
-			if item["authority"] != slotDefault["authority"] || item["injection_risk"] != slotDefault["injection_risk"] {
-				return nil, nil, featureGap("authority or injection risk admission")
-			}
-			if strings.HasPrefix(slot, "governance.") && item["trust"] != "verified" {
-				return nil, nil, featureGap("governance trust admission")
-			}
-			if tier, ok := item["tier"].(string); ok && tier != slotDefault["tier"] {
-				return nil, nil, featureGap("tier admission")
-			}
-			if itemScope, ok := item["scope"].(map[string]any); ok {
-				for key, value := range itemScope {
-					if requestScope[key] != value {
-						return nil, nil, featureGap("scope admission")
-					}
-				}
-			}
-			freshness, err := compareInstants(asString(item["freshness"]), assemblyTime)
-			if err != nil {
-				return nil, nil, err
-			}
-			if freshness > 0 {
-				return nil, nil, featureGap("future freshness admission")
-			}
-			if expires, ok := item["expires"].(string); ok {
-				remaining, err := compareInstants(expires, assemblyTime)
-				if err != nil {
-					return nil, nil, err
-				}
-				if remaining <= 0 {
-					return nil, nil, featureGap("expiration admission")
-				}
-			}
-			body := escapeXML(asString(item["body"]))
-			bodyTokens := tokenizer(body)
-			if bodyTokens < 0 {
-				return nil, nil, errors.New("tokenizer returned a negative count")
-			}
-			if cap, ok := item["token_budget"].(float64); ok && float64(bodyTokens) > cap {
-				return nil, nil, featureGap("item token cap")
-			}
-			items = append(items, &basicItem{id: id, slot: slot, body: body,
-				sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),
-				bodyTokens: bodyTokens})
+	}
+	return a.items, a.excluded, nil
+}
+
+func (a *basicAdmission) addBatch(batch map[string]any) error {
+	producer := asObject(batch["producer"])
+	producerID, producerKind := asString(producer["id"]), asString(producer["kind"])
+	ruleValue, ok := a.producers[producerID]
+	if !ok || asObject(ruleValue)["kind"] != producerKind {
+		return featureGap("producer authentication exclusion")
+	}
+	if err := a.addProducerExclusions(asArray(batch["excluded"])); err != nil {
+		return err
+	}
+	allowedSlots := asArray(asObject(ruleValue)["slots"])
+	for _, rawItem := range asArray(batch["items"]) {
+		if err := a.addItem(rawItem, producerKind, allowedSlots); err != nil {
+			return err
 		}
 	}
-	return items, excluded, nil
+	return nil
+}
+
+func (a *basicAdmission) addProducerExclusions(rawRows []any) error {
+	rows, err := sortedRows(rawRows, "item_id")
+	if err != nil {
+		return err
+	}
+	for _, rawRow := range rows {
+		row := asObject(rawRow)
+		id := asString(row["item_id"])
+		if a.seenIDs[id] {
+			return featureGap("duplicate producer exclusion id")
+		}
+		a.seenIDs[id] = true
+		a.excluded = append(a.excluded, row)
+	}
+	return nil
+}
+
+func (a *basicAdmission) addItem(rawItem any, producerKind string, allowedSlots []any) error {
+	if err := a.schema.Validate(rawItem); err != nil {
+		return featureGap("invalid item admission")
+	}
+	item := asObject(rawItem)
+	id, slot := asString(item["id"]), asString(item["slot"])
+	if a.seenIDs[id] {
+		return featureGap("duplicate item admission")
+	}
+	a.seenIDs[id] = true
+	allowed := false
+	for _, candidateSlot := range allowedSlots {
+		allowed = allowed || candidateSlot == slot
+	}
+	if !allowed || !basicKindSlotAllowed(producerKind, slot) {
+		return featureGap("producer slot admission")
+	}
+	if err := a.checkMetadata(item); err != nil {
+		return err
+	}
+	if err := a.checkTimeAndScope(item); err != nil {
+		return err
+	}
+	body := escapeXML(asString(item["body"]))
+	bodyTokens := a.tokenizer(body)
+	if bodyTokens < 0 {
+		return errors.New("tokenizer returned a negative count")
+	}
+	if cap, ok := item["token_budget"].(float64); ok && float64(bodyTokens) > cap {
+		return featureGap("item token cap")
+	}
+	a.items = append(a.items, &basicItem{id: id, slot: slot, body: body,
+		sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),
+		bodyTokens: bodyTokens})
+	return nil
+}
+
+func (a *basicAdmission) checkMetadata(item map[string]any) error {
+	for _, field := range []string{"token_budget", "variants", "conflict_policy", "lineage", "eligibility", "injection_risk"} {
+		if _, ok := item[field]; !ok {
+			return featureGap("item defaults")
+		}
+	}
+	if len(asArray(item["variants"])) != 0 || item["revoked_by"] != nil {
+		return featureGap("variants or revocation")
+	}
+	slot := asString(item["slot"])
+	slotDefault := a.defaults[slot]
+	if item["authority"] != slotDefault["authority"] || item["injection_risk"] != slotDefault["injection_risk"] {
+		return featureGap("authority or injection risk admission")
+	}
+	if strings.HasPrefix(slot, "governance.") && item["trust"] != "verified" {
+		return featureGap("governance trust admission")
+	}
+	if tier, ok := item["tier"].(string); ok && tier != slotDefault["tier"] {
+		return featureGap("tier admission")
+	}
+	return nil
+}
+
+func (a *basicAdmission) checkTimeAndScope(item map[string]any) error {
+	if itemScope, ok := item["scope"].(map[string]any); ok {
+		for key, value := range itemScope {
+			if a.requestScope[key] != value {
+				return featureGap("scope admission")
+			}
+		}
+	}
+	freshness, err := compareInstants(asString(item["freshness"]), a.assemblyTime)
+	if err != nil {
+		return err
+	}
+	if freshness > 0 {
+		return featureGap("future freshness admission")
+	}
+	if expires, ok := item["expires"].(string); ok {
+		remaining, err := compareInstants(expires, a.assemblyTime)
+		if err != nil {
+			return err
+		}
+		if remaining <= 0 {
+			return featureGap("expiration admission")
+		}
+	}
+	return nil
 }
 
 func basicKindSlotAllowed(kind, slot string) bool {
