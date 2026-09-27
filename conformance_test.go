@@ -36,9 +36,9 @@ var pending = map[string]bool{
 	"messages-render": true, "ordering-astral-ids": true,
 	"protected-over-budget": true,
 	"protected-over-cap":    true, "protected-over-slot-cap": true,
-	"render-attribute-escaping": true,
-	"required-slot-missing":     true, "supersede-evidence-required": true,
-	"supersede-exemptions": true, "supersede-observations": true,
+	"render-attribute-escaping":   true,
+	"supersede-evidence-required": true,
+	"supersede-exemptions":        true, "supersede-observations": true,
 	"threshold-beyond-2-53": true, "tokenizer-estimate-utf8": true,
 }
 

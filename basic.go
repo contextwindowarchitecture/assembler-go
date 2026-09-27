@@ -76,7 +76,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	}
 	sort.Slice(keys, func(i, j int) bool { return utf16Less(keys[i], keys[j]) })
 	for _, key := range keys {
-		if key != "route" && key != "version" && key != "producers" && key != "slots" && key != "default_overrides" && key != "tier_upgrades" && key != "clock_skew_seconds" {
+		if key != "route" && key != "version" && key != "producers" && key != "slots" && key != "default_overrides" && key != "tier_upgrades" && key != "clock_skew_seconds" && key != "parser" {
 			return Result{}, featureGap("route policy " + key)
 		}
 	}
@@ -92,7 +92,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	reason, err := basicRefusal(items, asObject(snapshot["profile"]))
+	reason, err := basicRefusal(items, asObject(snapshot["profile"]), policy["parser"] == true)
 	if err != nil {
 		return Result{}, err
 	}
@@ -126,7 +126,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 }
 
 // basicRefusal evaluates the first two refusal conditions in registry order.
-func basicRefusal(items []*basicItem, profile map[string]any) (string, error) {
+func basicRefusal(items []*basicItem, profile map[string]any, parser bool) (string, error) {
 	present := map[string]bool{}
 	for _, item := range items {
 		present[item.slot] = true
@@ -135,6 +135,9 @@ func basicRefusal(items []*basicItem, profile map[string]any) (string, error) {
 		if !present[required] {
 			return "required_slot_missing", nil
 		}
+	}
+	if parser && !present["governance.output_contract"] {
+		return "required_slot_missing", nil
 	}
 	placed := map[string]bool{}
 	for _, raw := range asArray(profile["placement"]) {
