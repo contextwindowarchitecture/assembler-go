@@ -2,7 +2,7 @@
 
 A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
 
-Status: in development. The contract and conformance cases have not been vendored yet.
+Status: in development. The current report records 0/52 passing cases and 22/22 rejected invalid snapshots. Valid snapshots currently return an explicit implementation gap.
 
 ## Install
 
@@ -27,7 +27,11 @@ Go 1.26 or newer.
 go mod download
 go build ./...
 go test ./...
+python3 scripts/vendor_contract.py --verify
+python3 scripts/check_report.py --allow-failures
 ```
+
+After a contract update, run `python3 scripts/generate_contract.py` to refresh the embedded schemas and policy tables.
 
 ## Cost
 
