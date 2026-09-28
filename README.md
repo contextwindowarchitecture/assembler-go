@@ -6,7 +6,7 @@ Status: the current report passes all 52 published assembly cases and rejects al
 
 ## Install
 
-Use Go 1.26 or newer, then add the module with `go get github.com/contextwindowarchitecture/assembler-go`.
+Use Go 1.26 or newer. Once the maintainer publishes this repository, add the module with `go get github.com/contextwindowarchitecture/assembler-go`.
 
 ## Use
 
