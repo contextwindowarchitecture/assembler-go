@@ -124,13 +124,18 @@ func prepareBasic(snapshot map[string]any, tokenizer Tokenizer, tokenizerID, ren
 	if err != nil {
 		return nil, nil, err
 	}
+	items, superseded, err := supersedeObservations(conflict.items, policy)
+	if err != nil {
+		return nil, nil, err
+	}
 	excluded := append(admission.excluded, conflict.excluded...)
+	excluded = append(excluded, superseded...)
 	trace, err := basicTrace(snapshot, tokenizerID, rendererID, excluded, admission.defaultsFilled)
 	if err != nil {
 		return nil, nil, err
 	}
 	trace["conflicts"] = conflict.rows
-	reason, err := basicRefusal(conflict.items, asObject(snapshot["profile"]), policy["parser"] == true)
+	reason, err := basicRefusal(items, asObject(snapshot["profile"]), policy["parser"] == true)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -142,7 +147,7 @@ func prepareBasic(snapshot map[string]any, tokenizer Tokenizer, tokenizerID, ren
 			trace["recovery"] = map[string]any{"action": "request_context"}
 		}
 	}
-	return conflict.items, trace, nil
+	return items, trace, nil
 }
 
 // basicRefusal evaluates the first two refusal conditions in registry order.

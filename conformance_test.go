@@ -34,8 +34,8 @@ var pending = map[string]bool{
 	"protected-over-budget": true,
 	"protected-over-cap":    true, "protected-over-slot-cap": true,
 	"supersede-evidence-required": true,
-	"supersede-exemptions":        true, "supersede-observations": true,
-	"threshold-beyond-2-53": true, "tokenizer-estimate-utf8": true,
+	"supersede-exemptions":        true,
+	"threshold-beyond-2-53":       true, "tokenizer-estimate-utf8": true,
 }
 
 func TestConformanceCases(t *testing.T) {

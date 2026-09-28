@@ -542,8 +542,7 @@
         "R-22",
         "R-25"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "threshold-beyond-2-53",
