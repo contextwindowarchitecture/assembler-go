@@ -90,6 +90,11 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 		return Result{}, err
 	}
 	trace["excluded"] = append(asArray(trace["excluded"]), cappedItems...)
+	items, cappedSlots, err := enforceSlotCaps(snapshot, items, rendererID, tokenizer)
+	if err != nil {
+		return Result{}, err
+	}
+	trace["excluded"] = append(asArray(trace["excluded"]), cappedSlots...)
 	items, shed, err := shedDroppable(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err

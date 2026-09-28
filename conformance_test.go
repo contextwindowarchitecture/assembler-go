@@ -15,8 +15,7 @@ import (
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
 var pending = map[string]bool{
-	"budget-slot-cap-before-pressure": true,
-	"budget-slot-caps":                true, "budget-slot-floor-refused": true,
+	"budget-slot-floor-refused":   true,
 	"budget-slot-floor-under-cap": true, "budget-slot-floor": true,
 }
 

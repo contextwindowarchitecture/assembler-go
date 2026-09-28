@@ -107,8 +107,7 @@
         "R-18",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: slot token cap"
+      "outcome": "passed"
     },
     {
       "id": "budget-slot-caps",
@@ -119,8 +118,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: slot token cap"
+      "outcome": "passed"
     },
     {
       "id": "budget-slot-floor",
@@ -150,7 +148,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: slot token cap"
+      "detail": "exited 1: assembly feature not implemented: slot floor fitting"
     },
     {
       "id": "budget-token-caps",

@@ -29,6 +29,23 @@ func applyVariant(item *basicItem, variant map[string]any, tokenizer Tokenizer) 
 
 // chooseVariant picks the largest fitting shorter body, or the shortest available.
 func chooseVariant(snapshot map[string]any, items []*basicItem, item *basicItem, rendererID string, tokenizer Tokenizer) (bool, error) {
+	return chooseVariantToFit(snapshot, item, rendererID, tokenizer, func() (bool, error) {
+		_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
+		if err != nil {
+			return false, err
+		}
+		return fitsBudget(count, asObject(snapshot["budget"])), nil
+	})
+}
+
+func chooseSlotVariant(snapshot map[string]any, items []*basicItem, item *basicItem, slot, rendererID string, cap float64, tokenizer Tokenizer) (bool, error) {
+	return chooseVariantToFit(snapshot, item, rendererID, tokenizer, func() (bool, error) {
+		size, err := slotSize(snapshot, items, slot, rendererID, tokenizer)
+		return float64(size) <= cap, err
+	})
+}
+
+func chooseVariantToFit(snapshot map[string]any, item *basicItem, rendererID string, tokenizer Tokenizer, targetFits func() (bool, error)) (bool, error) {
 	currentSize, err := maxBodyTokens(snapshot, item, rendererID, tokenizer)
 	if err != nil {
 		return false, err
@@ -48,12 +65,11 @@ func chooseVariant(snapshot map[string]any, items []*basicItem, item *basicItem,
 			return false, err
 		}
 		if size < currentSize {
-			_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
+			fits, err := targetFits()
 			if err != nil {
 				restoreBody(item, baseline)
 				return false, err
 			}
-			fits := fitsBudget(count, asObject(snapshot["budget"]))
 			if best == nil || (fits && !bestFits) || (fits && bestFits && size > bestSize) || (!fits && !bestFits && size < bestSize) {
 				best, bestSize, bestFits = variant, size, fits
 			}

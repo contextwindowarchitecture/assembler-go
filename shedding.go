@@ -6,17 +6,6 @@ import "sort"
 func shedDroppable(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) ([]*basicItem, []any, error) {
 	policy := asObject(snapshot["route_policy"])
 	slotRules := objectValue(policy["slots"])
-	for slot, rawRule := range slotRules {
-		if cap, ok := objectValue(rawRule)["max_tokens"].(float64); ok {
-			size, err := slotSize(snapshot, items, slot, rendererID, tokenizer)
-			if err != nil {
-				return nil, nil, err
-			}
-			if float64(size) > cap {
-				return nil, nil, featureGap("slot token cap")
-			}
-		}
-	}
 	_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return nil, nil, err
@@ -76,53 +65,31 @@ func reduceCompressible(snapshot map[string]any, items []*basicItem, rendererID 
 	if err != nil || fits {
 		return pass.items, pass.excluded, err
 	}
+	walk := reductionWalk{
+		items: &pass.items, excluded: &pass.excluded, candidates: pass.candidates,
+		compress: func(item *basicItem) error {
+			_, err := chooseVariant(pass.snapshot, pass.items, item, pass.rendererID, pass.tokenizer)
+			return err
+		}, fits: pass.fits,
+	}
 	for _, raw := range arrayValue(policy["fitting_order"]) {
 		step := asObject(raw)
 		slot, action := asString(step["slot"]), asString(step["action"])
 		pass.listed[slot+"/"+action] = true
-		fits, err = pass.visit(action, slot, false)
+		fits, err = walk.visit(action, slot, func(*basicItem) bool { return true })
 		if err != nil || fits {
 			return pass.items, pass.excluded, err
 		}
 	}
 	for _, action := range []string{"compress", "omit"} {
-		fits, err = pass.visit(action, "", true)
+		fits, err = walk.visit(action, "", func(item *basicItem) bool {
+			return !pass.listed[item.slot+"/"+action]
+		})
 		if err != nil || fits {
 			return pass.items, pass.excluded, err
 		}
 	}
 	return pass.items, pass.excluded, nil
-}
-
-func (pass *fittingPass) visit(action, slot string, defaults bool) (bool, error) {
-	for _, item := range pass.candidates {
-		if (slot != "" && item.slot != slot) || !containsItem(pass.items, item) {
-			continue
-		}
-		if defaults && pass.listed[item.slot+"/"+action] {
-			continue
-		}
-		if action == "compress" {
-			if _, err := chooseVariant(pass.snapshot, pass.items, item, pass.rendererID, pass.tokenizer); err != nil {
-				return false, err
-			}
-		} else {
-			for i, active := range pass.items {
-				if active == item {
-					pass.items = append(pass.items[:i], pass.items[i+1:]...)
-					break
-				}
-			}
-			pass.excluded = append(pass.excluded, map[string]any{
-				"item_id": item.id, "reason": "over_budget", "stage": "assembler", "slot": item.slot,
-			})
-		}
-		fits, err := pass.fits()
-		if err != nil || fits {
-			return fits, err
-		}
-	}
-	return false, nil
 }
 
 func (pass *fittingPass) fits() (bool, error) {
