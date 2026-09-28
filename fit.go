@@ -116,7 +116,7 @@ func slotSize(snapshot map[string]any, items []*basicItem, slot, rendererID stri
 
 func bodyForWrap(item *basicItem, rendererID string, wrap any) string {
 	if rendererID == "cwa-messages/v1" && (wrap == "system" || wrap == "tools") {
-		return asString(item.data["body"])
+		return item.bodyRaw
 	}
 	return item.body
 }

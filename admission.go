@@ -443,13 +443,15 @@ func olderThan(item map[string]any, assemblyTime string, limit any) (bool, error
 }
 
 func (a *admissionPass) include(item map[string]any, producerID string) error {
-	body := escapeXML(asString(item["body"]))
+	rawBody := asString(item["body"])
+	body := escapeXML(rawBody)
 	count := a.tokenizer(body)
 	if count < 0 {
 		return errors.New("tokenizer returned a negative count")
 	}
 	a.result.items = append(a.result.items, &basicItem{
 		id: asString(item["id"]), slot: asString(item["slot"]), body: body,
+		bodyRaw: rawBody, initialBody: body, initialRaw: rawBody,
 		sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),
 		bodyTokens: count, tier: effectiveTier(item, a.slotDefaults[asString(item["slot"])], a.policy, asString(item["slot"])),
 		data: item, producerID: producerID,

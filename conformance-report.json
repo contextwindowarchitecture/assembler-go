@@ -72,8 +72,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: variant compression"
+      "outcome": "passed"
     },
     {
       "id": "budget-protected-variants",
@@ -82,8 +81,7 @@
         "R-18",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: variant compression"
+      "outcome": "passed"
     },
     {
       "id": "budget-route-order",
@@ -100,8 +98,7 @@
         "R-18",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: variant compression"
+      "outcome": "passed"
     },
     {
       "id": "budget-slot-cap-before-pressure",
@@ -174,8 +171,7 @@
         "R-18",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: variant compression"
+      "outcome": "passed"
     },
     {
       "id": "capability-policy-kind",
@@ -343,7 +339,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: variant compression"
+      "detail": "the trace differs at /recovery/action: expected \"precompute_summary\", got \"request_context\""
     },
     {
       "id": "evidence-request-context",
@@ -365,7 +361,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: variant compression"
+      "detail": "the trace differs at /recovery/action: expected \"retrieve_narrower\", got \"request_context\""
     },
     {
       "id": "fixture-three-slot",

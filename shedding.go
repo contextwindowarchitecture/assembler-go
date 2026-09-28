@@ -53,86 +53,93 @@ func shedDroppable(snapshot map[string]any, items []*basicItem, rendererID strin
 	return current, excluded, nil
 }
 
-// reduceCompressible follows route steps before the default compress/omit steps.
+// fittingPass keeps route order and per-item state together during budget pressure.
+type fittingPass struct {
+	snapshot          map[string]any
+	items, candidates []*basicItem
+	excluded          []any
+	rendererID        string
+	tokenizer         Tokenizer
+	budget            map[string]any
+	listed            map[string]bool
+}
+
 func reduceCompressible(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) ([]*basicItem, []any, error) {
-	budget := asObject(snapshot["budget"])
-	_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
-	if err != nil {
-		return nil, nil, err
-	}
-	if fitsBudget(count, budget) {
-		return items, []any{}, nil
-	}
 	policy := asObject(snapshot["route_policy"])
-	candidates := sheddingOrder(items, policy, "compressible")
-	current := append([]*basicItem(nil), items...)
-	excluded := []any{}
-	listed := map[string]bool{}
+	pass := &fittingPass{
+		snapshot: snapshot, items: append([]*basicItem(nil), items...),
+		candidates: sheddingOrder(items, policy, "compressible"), excluded: []any{},
+		rendererID: rendererID, tokenizer: tokenizer,
+		budget: asObject(snapshot["budget"]), listed: map[string]bool{},
+	}
+	fits, err := pass.fits()
+	if err != nil || fits {
+		return pass.items, pass.excluded, err
+	}
 	for _, raw := range arrayValue(policy["fitting_order"]) {
 		step := asObject(raw)
 		slot, action := asString(step["slot"]), asString(step["action"])
-		listed[slot+"/"+action] = true
-		if action == "compress" {
-			if hasVariants(current, slot) {
-				return nil, nil, featureGap("variant compression")
-			}
-			continue
-		}
-		for _, item := range candidates {
-			if item.slot != slot {
-				continue
-			}
-			current, excluded, count, err = omitCompressible(snapshot, current, excluded, item, rendererID, tokenizer)
-			if err != nil {
-				return nil, nil, err
-			}
-			if fitsBudget(count, budget) {
-				return current, excluded, nil
-			}
+		pass.listed[slot+"/"+action] = true
+		fits, err = pass.visit(action, slot, false)
+		if err != nil || fits {
+			return pass.items, pass.excluded, err
 		}
 	}
-	for _, item := range current {
-		if item.tier == "compressible" && !listed[item.slot+"/compress"] && len(asArray(item.data["variants"])) > 0 {
-			return nil, nil, featureGap("variant compression")
+	for _, action := range []string{"compress", "omit"} {
+		fits, err = pass.visit(action, "", true)
+		if err != nil || fits {
+			return pass.items, pass.excluded, err
 		}
 	}
-	for _, item := range candidates {
-		if listed[item.slot+"/omit"] {
-			continue
-		}
-		current, excluded, count, err = omitCompressible(snapshot, current, excluded, item, rendererID, tokenizer)
-		if err != nil {
-			return nil, nil, err
-		}
-		if fitsBudget(count, budget) {
-			break
-		}
-	}
-	return current, excluded, nil
+	return pass.items, pass.excluded, nil
 }
 
-func hasVariants(items []*basicItem, slot string) bool {
+func (pass *fittingPass) visit(action, slot string, defaults bool) (bool, error) {
+	for _, item := range pass.candidates {
+		if (slot != "" && item.slot != slot) || !containsItem(pass.items, item) {
+			continue
+		}
+		if defaults && pass.listed[item.slot+"/"+action] {
+			continue
+		}
+		if action == "compress" {
+			if _, err := chooseVariant(pass.snapshot, pass.items, item, pass.rendererID, pass.tokenizer); err != nil {
+				return false, err
+			}
+		} else {
+			for i, active := range pass.items {
+				if active == item {
+					pass.items = append(pass.items[:i], pass.items[i+1:]...)
+					break
+				}
+			}
+			pass.excluded = append(pass.excluded, map[string]any{
+				"item_id": item.id, "reason": "over_budget", "stage": "assembler", "slot": item.slot,
+			})
+		}
+		fits, err := pass.fits()
+		if err != nil || fits {
+			return fits, err
+		}
+	}
+	return false, nil
+}
+
+func (pass *fittingPass) fits() (bool, error) {
+	_, _, count, err := renderBasic(pass.snapshot, pass.items, pass.rendererID, pass.tokenizer)
+	if err != nil {
+		return false, err
+	}
+	return fitsBudget(count, pass.budget), nil
+}
+
+func containsItem(items []*basicItem, target *basicItem) bool {
 	for _, item := range items {
-		if item.slot == slot && len(asArray(item.data["variants"])) > 0 {
+		if item == target {
 			return true
 		}
 	}
 	return false
-}
-
-func omitCompressible(snapshot map[string]any, items []*basicItem, excluded []any, target *basicItem, rendererID string, tokenizer Tokenizer) ([]*basicItem, []any, int, error) {
-	for i, item := range items {
-		if item != target {
-			continue
-		}
-		items = append(items[:i], items[i+1:]...)
-		break
-	}
-	excluded = append(excluded, map[string]any{
-		"item_id": target.id, "reason": "over_budget", "stage": "assembler", "slot": target.slot,
-	})
-	_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
-	return items, excluded, count, err
 }
 
 func sheddingOrder(items []*basicItem, policy map[string]any, tier string) []*basicItem {

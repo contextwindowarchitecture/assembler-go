@@ -29,7 +29,7 @@ func renderMessages(snapshot map[string]any, items []*basicItem, tokenizer Token
 		for _, item := range placementItems(items, slot) {
 			body := item.body
 			if wrap == "system" || wrap == "tools" {
-				body = asString(item.data["body"])
+				body = item.bodyRaw
 				entry := map[string]any{"id": item.id, "text": body}
 				if item.conflictID != "" {
 					entry["conflict"] = item.conflictID
@@ -111,4 +111,30 @@ func messageXML(item *basicItem, tag string) string {
 	content.WriteString(tag)
 	content.WriteString(">\n")
 	return content.String()
+}
+
+func compressedRows(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) ([]any, error) {
+	rows := []any{}
+	for _, raw := range asArray(asObject(snapshot["profile"])["placement"]) {
+		placement := asObject(raw)
+		slot, wrap := asString(placement["slot"]), placement["wrap"]
+		for _, item := range placementItems(items, slot) {
+			if item.variant == nil {
+				continue
+			}
+			before := item.initialBody
+			if rendererID == "cwa-messages/v1" && (wrap == "system" || wrap == "tools") {
+				before = item.initialRaw
+			}
+			from, to := tokenizer(before), tokenizer(bodyForWrap(item, rendererID, wrap))
+			if from < 0 || to < 0 {
+				return nil, errors.New("tokenizer returned a negative count")
+			}
+			rows = append(rows, map[string]any{
+				"slot": slot, "item_id": item.id, "from": from, "to": to,
+				"method": item.variant["method"], "variant_id": item.variant["id"],
+			})
+		}
+	}
+	return rows, nil
 }

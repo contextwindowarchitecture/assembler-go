@@ -1,0 +1,71 @@
+package assembler
+
+import "errors"
+
+type itemBodyState struct {
+	body, raw string
+	tokens    int
+	variant   map[string]any
+}
+
+func bodyState(item *basicItem) itemBodyState {
+	return itemBodyState{item.body, item.bodyRaw, item.bodyTokens, item.variant}
+}
+
+func restoreBody(item *basicItem, state itemBodyState) {
+	item.body, item.bodyRaw, item.bodyTokens, item.variant = state.body, state.raw, state.tokens, state.variant
+}
+
+func applyVariant(item *basicItem, variant map[string]any, tokenizer Tokenizer) error {
+	item.bodyRaw = asString(variant["body"])
+	item.body = escapeXML(item.bodyRaw)
+	item.bodyTokens = tokenizer(item.body)
+	if item.bodyTokens < 0 {
+		return errors.New("tokenizer returned a negative count")
+	}
+	item.variant = variant
+	return nil
+}
+
+// chooseVariant picks the largest fitting shorter body, or the shortest available.
+func chooseVariant(snapshot map[string]any, items []*basicItem, item *basicItem, rendererID string, tokenizer Tokenizer) (bool, error) {
+	currentSize, err := maxBodyTokens(snapshot, item, rendererID, tokenizer)
+	if err != nil {
+		return false, err
+	}
+	baseline := bodyState(item)
+	bestSize, bestFits := 0, false
+	var best map[string]any
+	for _, raw := range asArray(item.data["variants"]) {
+		variant := asObject(raw)
+		if err := applyVariant(item, variant, tokenizer); err != nil {
+			restoreBody(item, baseline)
+			return false, err
+		}
+		size, err := maxBodyTokens(snapshot, item, rendererID, tokenizer)
+		if err != nil {
+			restoreBody(item, baseline)
+			return false, err
+		}
+		if size < currentSize {
+			_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
+			if err != nil {
+				restoreBody(item, baseline)
+				return false, err
+			}
+			fits := fitsBudget(count, asObject(snapshot["budget"]))
+			if best == nil || (fits && !bestFits) || (fits && bestFits && size > bestSize) || (!fits && !bestFits && size < bestSize) {
+				best, bestSize, bestFits = variant, size, fits
+			}
+		}
+		restoreBody(item, baseline)
+	}
+	if best == nil {
+		return false, nil
+	}
+	if err := applyVariant(item, best, tokenizer); err != nil {
+		restoreBody(item, baseline)
+		return false, err
+	}
+	return true, nil
+}

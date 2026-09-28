@@ -14,10 +14,11 @@ import (
 )
 
 type basicItem struct {
-	id, slot, body, sourceVersion, eligibility, tier string
-	bodyTokens                                       int
-	data                                             map[string]any
-	producerID, groupID, conflictID                  string
+	id, slot, body, bodyRaw, initialBody, initialRaw, sourceVersion, eligibility, tier string
+	bodyTokens                                                                         int
+	data                                                                               map[string]any
+	variant                                                                            map[string]any
+	producerID, groupID, conflictID                                                    string
 }
 
 var (
@@ -114,6 +115,11 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	hash := sha256.Sum256(payload)
 	trace["result"] = map[string]any{"input_tokens": count, "hash": hex.EncodeToString(hash[:])}
 	trace["included"] = included
+	compressed, err := compressedRows(snapshot, items, rendererID, tokenizer)
+	if err != nil {
+		return Result{}, err
+	}
+	trace["compressed"] = compressed
 	return Result{Payload: payload, Trace: trace}, nil
 }
 
