@@ -93,6 +93,11 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if float64((count*(100+margin)+99)/100) > budget["input"].(float64) {
 		return Result{}, featureGap("budget fitting")
 	}
+	if evidenceRequired(items, asObject(snapshot["route_policy"])) {
+		trace["refused"] = map[string]any{"bool": true, "reason": "evidence_required"}
+		trace["recovery"] = map[string]any{"action": "request_context"}
+		return Result{Trace: trace}, nil
+	}
 	hash := sha256.Sum256(payload)
 	trace["result"] = map[string]any{"input_tokens": count, "hash": hex.EncodeToString(hash[:])}
 	trace["included"] = included
@@ -105,6 +110,7 @@ func prepareBasic(snapshot map[string]any, tokenizer Tokenizer, tokenizerID, ren
 		"route": true, "version": true, "producers": true, "slots": true,
 		"default_overrides": true, "tier_upgrades": true, "clock_skew_seconds": true,
 		"parser": true, "on_unresolved_instruction": true, "facts": true,
+		"requires_evidence": true,
 	}
 	keys := make([]string, 0, len(policy))
 	for key := range policy {
