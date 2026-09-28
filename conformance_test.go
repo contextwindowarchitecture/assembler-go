@@ -15,9 +15,7 @@ import (
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
 var pending = map[string]bool{
-	"budget-droppable-order":  true,
-	"budget-margin-rounding": true,
-	"budget-margin": true, "budget-omit-after-variants": true,
+	"budget-omit-after-variants": true,
 	"budget-protected-variants": true, "budget-route-order": true,
 	"budget-route-tiers": true, "budget-slot-cap-before-pressure": true,
 	"budget-slot-caps": true, "budget-slot-floor-refused": true,
@@ -28,7 +26,7 @@ var pending = map[string]bool{
 	"evidence-retrieve-narrower": true,
 	"messages-budget":            true,
 	"ordering-astral-ids":        true,
-	"threshold-beyond-2-53":      true, "tokenizer-estimate-utf8": true,
+	"threshold-beyond-2-53": true,
 }
 
 func TestConformanceCases(t *testing.T) {

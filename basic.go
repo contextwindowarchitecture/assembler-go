@@ -86,6 +86,11 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if err := checkOtherItemCaps(snapshot, items, rendererID, tokenizer); err != nil {
 		return Result{}, err
 	}
+	items, shed, err := shedDroppable(snapshot, items, rendererID, tokenizer)
+	if err != nil {
+		return Result{}, err
+	}
+	trace["excluded"] = append(asArray(trace["excluded"]), shed...)
 	payload, included, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err
@@ -112,7 +117,7 @@ func prepareBasic(snapshot map[string]any, tokenizer Tokenizer, tokenizerID, ren
 	allowed := map[string]bool{
 		"route": true, "version": true, "producers": true, "slots": true,
 		"default_overrides": true, "tier_upgrades": true, "clock_skew_seconds": true,
-		"parser": true, "on_unresolved_instruction": true, "facts": true,
+		"parser": true, "on_unresolved_instruction": true, "facts": true, "fitting_order": true,
 		"requires_evidence": true,
 	}
 	keys := make([]string, 0, len(policy))

@@ -35,8 +35,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "budget-margin",
@@ -44,8 +43,7 @@
         "R-16",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "budget-margin-protected",
@@ -62,8 +60,7 @@
         "R-16",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "budget-omit-after-variants",
@@ -95,7 +92,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy fitting_order"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "budget-route-tiers",
@@ -115,7 +112,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: slot token cap"
     },
     {
       "id": "budget-slot-caps",
@@ -127,7 +124,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy fitting_order"
+      "detail": "exited 1: assembly feature not implemented: item token cap"
     },
     {
       "id": "budget-slot-floor",
@@ -137,7 +134,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: slot floor fitting"
     },
     {
       "id": "budget-slot-floor-refused",
@@ -147,7 +144,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: slot floor fitting"
     },
     {
       "id": "budget-slot-floor-under-cap",
@@ -157,7 +154,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: slot token cap"
     },
     {
       "id": "budget-token-caps",
@@ -548,8 +545,7 @@
         "R-16",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     }
   ],
   "rejections": [
