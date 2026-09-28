@@ -146,7 +146,7 @@ func sheddingOrder(items []*basicItem, policy map[string]any, tier string) []*ba
 	slotRules := objectValue(policy["slots"])
 	candidates := []*basicItem{}
 	for _, item := range items {
-		if item.tier == tier {
+		if item.tier == tier || (tier == "" && item.tier != "protected") {
 			candidates = append(candidates, item)
 		}
 	}

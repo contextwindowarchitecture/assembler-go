@@ -120,7 +120,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: item token cap"
+      "detail": "exited 1: assembly feature not implemented: slot token cap"
     },
     {
       "id": "budget-slot-floor",
@@ -161,8 +161,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: item token cap"
+      "outcome": "passed"
     },
     {
       "id": "budget-variant-choice",
@@ -327,7 +326,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: item token cap"
+      "detail": "the trace differs at /recovery/action: expected \"precompute_summary\", got \"request_context\""
     },
     {
       "id": "evidence-precompute-summary",

@@ -69,3 +69,35 @@ func chooseVariant(snapshot map[string]any, items []*basicItem, item *basicItem,
 	}
 	return true, nil
 }
+
+// chooseCapVariant takes the largest variant within the item's rendered body cap.
+func chooseCapVariant(snapshot map[string]any, item *basicItem, rendererID string, tokenizer Tokenizer) (bool, error) {
+	cap := item.data["token_budget"].(float64)
+	baseline := bodyState(item)
+	bestSize := -1
+	var best map[string]any
+	for _, raw := range asArray(item.data["variants"]) {
+		variant := asObject(raw)
+		if err := applyVariant(item, variant, tokenizer); err != nil {
+			restoreBody(item, baseline)
+			return false, err
+		}
+		size, err := maxBodyTokens(snapshot, item, rendererID, tokenizer)
+		if err != nil {
+			restoreBody(item, baseline)
+			return false, err
+		}
+		if float64(size) <= cap && size > bestSize {
+			best, bestSize = variant, size
+		}
+		restoreBody(item, baseline)
+	}
+	if best == nil {
+		return false, nil
+	}
+	if err := applyVariant(item, best, tokenizer); err != nil {
+		restoreBody(item, baseline)
+		return false, err
+	}
+	return true, nil
+}

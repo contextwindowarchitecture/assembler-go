@@ -84,9 +84,11 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 		trace["refused"] = map[string]any{"bool": true, "reason": "protected_content_over_budget"}
 		return Result{Trace: trace}, nil
 	}
-	if err := checkOtherItemCaps(snapshot, items, rendererID, tokenizer); err != nil {
+	items, cappedItems, err := enforceItemCaps(snapshot, items, rendererID, tokenizer)
+	if err != nil {
 		return Result{}, err
 	}
+	trace["excluded"] = append(asArray(trace["excluded"]), cappedItems...)
 	items, shed, err := shedDroppable(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err

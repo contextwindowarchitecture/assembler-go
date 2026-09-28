@@ -2,7 +2,7 @@
 
 A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
 
-Status: in development. The current report records 43/52 passing cases and 22/22 rejected invalid snapshots. Unimplemented assembly features return an explicit gap.
+Status: in development. The current report records 44/52 passing cases and 22/22 rejected invalid snapshots. Unimplemented assembly features return an explicit gap.
 
 ## Install
 
@@ -12,7 +12,7 @@ TODO: how to add the package to a project.
 
 `Assemble(snapshotJSON, Options{})` accepts the frozen snapshot as JSON bytes. It returns a `Result` with rendered UTF-8 `Payload` and a `Trace`. A refusal has a nil payload. Invalid snapshots return `SnapshotRejectedError` with no result; unknown component ids return `UnsupportedComponentError`. Callers can supply tokenizers in `Options.Tokenizers` for one call; the built-in tokenizer ids cannot be replaced.
 
-Admission applies the published schema, producer permissions, route eligibility, defaults and reason precedence. Declared instruction and fact conflicts resolve or escalate through route policy, followed by source supersession, exact deduplication and source diversity caps. Missing required slots, protected unplaced slots, unresolved conflicts and insufficient evidence refuse with a trace. Protected items refuse when their own cap, slot cap or the protected-only payload exceeds budget. Budget pressure sheds droppable items, then compresses or omits compressible items in route order, counting the whole rendered payload after each change; item and slot caps and slot floors remain pending. Both built-in renderers are available. The current case coverage is recorded in `conformance-report.json`.
+Admission applies the published schema, producer permissions, route eligibility, defaults and reason precedence. Declared instruction and fact conflicts resolve or escalate through route policy, followed by source supersession, exact deduplication and source diversity caps. Missing required slots, protected unplaced slots, unresolved conflicts and insufficient evidence refuse with a trace. Protected items refuse when their own cap, slot cap or the protected-only payload exceeds budget. Per-item caps run before budget pressure, which sheds droppable items, then compresses or omits compressible items in route order, counting the whole rendered payload after each change; slot caps and floors remain pending. Both built-in renderers are available. The current case coverage is recorded in `conformance-report.json`.
 
 ## Requirements
 

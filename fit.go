@@ -39,20 +39,38 @@ func protectedLimits(snapshot map[string]any, items []*basicItem, rendererID str
 	return !fitsBudget(count, asObject(snapshot["budget"])), nil
 }
 
-func checkOtherItemCaps(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) error {
-	for _, item := range items {
-		if item.tier == "protected" {
-			continue
-		}
+func enforceItemCaps(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) ([]*basicItem, []any, error) {
+	current := append([]*basicItem(nil), items...)
+	excluded := []any{}
+	for _, item := range sheddingOrder(items, asObject(snapshot["route_policy"]), "") {
 		over, err := itemOverCap(snapshot, item, rendererID, tokenizer)
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
-		if over {
-			return featureGap("item token cap")
+		if !over {
+			continue
 		}
+		withinCap := false
+		if item.tier == "compressible" {
+			withinCap, err = chooseCapVariant(snapshot, item, rendererID, tokenizer)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		if withinCap {
+			continue
+		}
+		for i, active := range current {
+			if active == item {
+				current = append(current[:i], current[i+1:]...)
+				break
+			}
+		}
+		excluded = append(excluded, map[string]any{
+			"item_id": item.id, "reason": "over_budget", "stage": "assembler", "slot": item.slot,
+		})
 	}
-	return nil
+	return current, excluded, nil
 }
 
 func fitsBudget(count int, budget map[string]any) bool {
