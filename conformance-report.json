@@ -73,7 +73,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: variant compression"
     },
     {
       "id": "budget-protected-variants",
@@ -83,7 +83,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: variant compression"
     },
     {
       "id": "budget-route-order",
@@ -91,8 +91,7 @@
         "R-16",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "budget-route-tiers",
@@ -102,7 +101,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: variant compression"
     },
     {
       "id": "budget-slot-cap-before-pressure",
@@ -176,7 +175,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: variant compression"
     },
     {
       "id": "capability-policy-kind",
@@ -245,8 +244,7 @@
         "R-16",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "dedupe-evidence-required",
@@ -345,7 +343,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: variant compression"
     },
     {
       "id": "evidence-request-context",
@@ -367,7 +365,7 @@
         "R-22"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "detail": "exited 1: assembly feature not implemented: variant compression"
     },
     {
       "id": "fixture-three-slot",
@@ -386,8 +384,7 @@
         "R-16",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "messages-render",
@@ -408,8 +405,7 @@
         "R-22",
         "R-23"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "placement-protected-unplaced",
@@ -536,8 +532,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "tokenizer-estimate-utf8",

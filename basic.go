@@ -90,7 +90,12 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
+	items, compressedShed, err := reduceCompressible(snapshot, items, rendererID, tokenizer)
+	if err != nil {
+		return Result{}, err
+	}
 	trace["excluded"] = append(asArray(trace["excluded"]), shed...)
+	trace["excluded"] = append(asArray(trace["excluded"]), compressedShed...)
 	payload, included, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err
