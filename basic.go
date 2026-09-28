@@ -76,6 +76,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if asObject(trace["refused"])["bool"] == true {
 		return Result{Trace: trace}, nil
 	}
+	admittedBeforeFitting := items
 	protectedOverCap, err := protectedLimits(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err
@@ -111,7 +112,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	}
 	if evidenceRequired(items, asObject(snapshot["route_policy"])) {
 		trace["refused"] = map[string]any{"bool": true, "reason": "evidence_required"}
-		trace["recovery"] = map[string]any{"action": "request_context"}
+		trace["recovery"] = map[string]any{"action": evidenceRecovery(asArray(trace["excluded"]), admittedBeforeFitting)}
 		return Result{Trace: trace}, nil
 	}
 	hash := sha256.Sum256(payload)

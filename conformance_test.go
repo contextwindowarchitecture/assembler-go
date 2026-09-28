@@ -18,8 +18,6 @@ var pending = map[string]bool{
 	"budget-slot-cap-before-pressure": true,
 	"budget-slot-caps":                true, "budget-slot-floor-refused": true,
 	"budget-slot-floor-under-cap": true, "budget-slot-floor": true,
-	"evidence-cap-omitted": true, "evidence-precompute-summary": true,
-	"evidence-retrieve-narrower": true,
 }
 
 func TestConformanceCases(t *testing.T) {
