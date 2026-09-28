@@ -16,6 +16,8 @@ import (
 type basicItem struct {
 	id, slot, body, sourceVersion, eligibility, tier string
 	bodyTokens                                       int
+	data                                             map[string]any
+	producerID, groupID, conflictID                  string
 }
 
 var (
@@ -69,35 +71,11 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if rendererID != "fixture-xml/v1" {
 		return Result{}, featureGap("cwa-messages rendering")
 	}
-	policy := asObject(snapshot["route_policy"])
-	keys := make([]string, 0, len(policy))
-	for key := range policy {
-		keys = append(keys, key)
-	}
-	sort.Slice(keys, func(i, j int) bool { return utf16Less(keys[i], keys[j]) })
-	for _, key := range keys {
-		if key != "route" && key != "version" && key != "producers" && key != "slots" && key != "default_overrides" && key != "tier_upgrades" && key != "clock_skew_seconds" && key != "parser" {
-			return Result{}, featureGap("route policy " + key)
-		}
-	}
-	if len(asArray(snapshot["conflicts"])) != 0 {
-		return Result{}, featureGap("conflicts")
-	}
-	admission, err := admit(snapshot, tokenizer)
+	items, trace, err := prepareBasic(snapshot, tokenizer, tokenizerID, rendererID)
 	if err != nil {
 		return Result{}, err
 	}
-	items, excluded := admission.items, admission.excluded
-	trace, err := basicTrace(snapshot, tokenizerID, rendererID, excluded, admission.defaultsFilled)
-	if err != nil {
-		return Result{}, err
-	}
-	reason, err := basicRefusal(items, asObject(snapshot["profile"]), policy["parser"] == true)
-	if err != nil {
-		return Result{}, err
-	}
-	if reason != "" {
-		trace["refused"] = map[string]any{"bool": true, "reason": reason}
+	if asObject(trace["refused"])["bool"] == true {
 		return Result{Trace: trace}, nil
 	}
 	payload, included, err := renderBasicXML(snapshot, items, tokenizer)
@@ -123,6 +101,52 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	trace["result"] = map[string]any{"input_tokens": count, "hash": hex.EncodeToString(hash[:])}
 	trace["included"] = included
 	return Result{Payload: payload, Trace: trace}, nil
+}
+
+func prepareBasic(snapshot map[string]any, tokenizer Tokenizer, tokenizerID, rendererID string) ([]*basicItem, map[string]any, error) {
+	policy := asObject(snapshot["route_policy"])
+	allowed := map[string]bool{
+		"route": true, "version": true, "producers": true, "slots": true,
+		"default_overrides": true, "tier_upgrades": true, "clock_skew_seconds": true,
+		"parser": true, "on_unresolved_instruction": true, "facts": true,
+	}
+	keys := make([]string, 0, len(policy))
+	for key := range policy {
+		keys = append(keys, key)
+	}
+	sort.Slice(keys, func(i, j int) bool { return utf16Less(keys[i], keys[j]) })
+	for _, key := range keys {
+		if !allowed[key] {
+			return nil, nil, featureGap("route policy " + key)
+		}
+	}
+	admission, err := admit(snapshot, tokenizer)
+	if err != nil {
+		return nil, nil, err
+	}
+	conflict, err := resolveConflicts(snapshot, admission.items)
+	if err != nil {
+		return nil, nil, err
+	}
+	excluded := append(admission.excluded, conflict.excluded...)
+	trace, err := basicTrace(snapshot, tokenizerID, rendererID, excluded, admission.defaultsFilled)
+	if err != nil {
+		return nil, nil, err
+	}
+	trace["conflicts"] = conflict.rows
+	reason, err := basicRefusal(conflict.items, asObject(snapshot["profile"]), policy["parser"] == true)
+	if err != nil {
+		return nil, nil, err
+	}
+	if reason != "" {
+		trace["refused"] = map[string]any{"bool": true, "reason": reason}
+	} else if conflict.unresolved {
+		trace["refused"] = map[string]any{"bool": true, "reason": "conflict_unresolved"}
+		if conflict.requestContextOnly {
+			trace["recovery"] = map[string]any{"action": "request_context"}
+		}
+	}
+	return conflict.items, trace, nil
 }
 
 // basicRefusal evaluates the first two refusal conditions in registry order.
@@ -221,6 +245,10 @@ func renderBasicXML(snapshot map[string]any, items []*basicItem, tokenizer Token
 			payload.WriteString(tag)
 			payload.WriteString(" id=\"")
 			payload.WriteString(xmlAttrEscaper.Replace(item.id))
+			if item.conflictID != "" {
+				payload.WriteString("\" conflict=\"")
+				payload.WriteString(xmlAttrEscaper.Replace(item.conflictID))
+			}
 			payload.WriteString("\">\n")
 			payload.WriteString(item.body)
 			payload.WriteString("\n</")

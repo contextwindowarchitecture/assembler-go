@@ -200,8 +200,7 @@
         "R-15",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "outcome": "passed"
     },
     {
       "id": "conflict-instruction",
@@ -212,8 +211,7 @@
         "R-11",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy on_unresolved_instruction"
+      "outcome": "passed"
     },
     {
       "id": "conflict-refused",
@@ -223,8 +221,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "outcome": "passed"
     },
     {
       "id": "conflict-request-context",
@@ -234,8 +231,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "outcome": "passed"
     },
     {
       "id": "conflict-required-slot-first",
@@ -244,8 +240,7 @@
         "R-11",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "outcome": "passed"
     },
     {
       "id": "conflict-surfaced-shed",
@@ -255,7 +250,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "dedupe-evidence-required",
@@ -288,7 +283,7 @@
         "R-24"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "dedupe-producer-reported",
@@ -337,7 +332,7 @@
         "R-26"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "evidence-cap-omitted",
@@ -493,8 +488,7 @@
         "R-11",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy on_unresolved_instruction"
+      "outcome": "passed"
     },
     {
       "id": "required-instructions-missing",
@@ -538,7 +532,7 @@
         "R-25"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: route policy facts"
+      "detail": "the payload bytes differ from expected.payload.txt"
     },
     {
       "id": "supersede-observations",

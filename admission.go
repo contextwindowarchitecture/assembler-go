@@ -152,7 +152,7 @@ func (a *admissionPass) addBatch(batch map[string]any) error {
 				return err
 			}
 			if reason == "" {
-				if err := a.include(copyItem); err != nil {
+				if err := a.include(copyItem, producerID); err != nil {
 					return err
 				}
 			}
@@ -442,7 +442,7 @@ func olderThan(item map[string]any, assemblyTime string, limit any) (bool, error
 	return cmp < 0, err
 }
 
-func (a *admissionPass) include(item map[string]any) error {
+func (a *admissionPass) include(item map[string]any, producerID string) error {
 	body := escapeXML(asString(item["body"]))
 	count := a.tokenizer(body)
 	if count < 0 {
@@ -455,6 +455,7 @@ func (a *admissionPass) include(item map[string]any) error {
 		id: asString(item["id"]), slot: asString(item["slot"]), body: body,
 		sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),
 		bodyTokens: count, tier: effectiveTier(item, a.slotDefaults[asString(item["slot"])], a.policy, asString(item["slot"])),
+		data: item, producerID: producerID,
 	})
 	return nil
 }
