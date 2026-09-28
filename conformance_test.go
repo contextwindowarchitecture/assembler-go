@@ -24,8 +24,7 @@ var pending = map[string]bool{
 	"budget-slot-floor-under-cap": true, "budget-slot-floor": true,
 	"budget-token-caps": true, "budget-variant-choice": true,
 	"conflict-surfaced-shed": true, "dedupe-evidence-required": true,
-	"dedupe-exact": true, "dedupe-exemptions": true,
-	"dedupe-producer-reported": true, "diversity-cap": true,
+	"diversity-cap": true,
 	"diversity-evidence-required": true, "diversity-exemptions": true,
 	"evidence-cap-omitted": true, "evidence-precompute-summary": true,
 	"evidence-request-context": true, "evidence-retrieve-narrower": true,
@@ -34,7 +33,6 @@ var pending = map[string]bool{
 	"protected-over-budget": true,
 	"protected-over-cap":    true, "protected-over-slot-cap": true,
 	"supersede-evidence-required": true,
-	"supersede-exemptions":        true,
 	"threshold-beyond-2-53":       true, "tokenizer-estimate-utf8": true,
 }
 

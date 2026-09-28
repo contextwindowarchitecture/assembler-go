@@ -128,8 +128,10 @@ func prepareBasic(snapshot map[string]any, tokenizer Tokenizer, tokenizerID, ren
 	if err != nil {
 		return nil, nil, err
 	}
+	items, duplicated := dedupeExact(items, policy)
 	excluded := append(admission.excluded, conflict.excluded...)
 	excluded = append(excluded, superseded...)
+	excluded = append(excluded, duplicated...)
 	trace, err := basicTrace(snapshot, tokenizerID, rendererID, excluded, admission.defaultsFilled)
 	if err != nil {
 		return nil, nil, err

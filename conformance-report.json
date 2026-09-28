@@ -270,8 +270,7 @@
         "R-22",
         "R-24"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "dedupe-exemptions",
@@ -282,8 +281,7 @@
         "R-21",
         "R-24"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "dedupe-producer-reported",
@@ -293,8 +291,7 @@
         "R-22",
         "R-24"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "diversity-cap",
@@ -530,8 +527,7 @@
         "R-24",
         "R-25"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "supersede-observations",
