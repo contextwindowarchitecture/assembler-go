@@ -1,9 +1,6 @@
 package assembler
 
-import (
-	"sort"
-	"strings"
-)
+import "strings"
 
 type duplicateKey struct{ slot, body string }
 
@@ -61,19 +58,5 @@ func dedupeExact(items []*basicItem, policy map[string]any) ([]*basicItem, []any
 			}
 		}
 	}
-	kept, excluded := make([]*basicItem, 0, len(items)), []any{}
-	for _, item := range items {
-		if winner, lost := dropped[item]; lost {
-			excluded = append(excluded, map[string]any{
-				"item_id": item.id, "reason": "duplicate_content", "stage": "assembler",
-				"slot": item.slot, "duplicate_of": winner,
-			})
-		} else {
-			kept = append(kept, item)
-		}
-	}
-	sort.Slice(excluded, func(i, j int) bool {
-		return utf16Less(asString(asObject(excluded[i])["item_id"]), asString(asObject(excluded[j])["item_id"]))
-	})
-	return kept, excluded
+	return stageExclusions(items, dropped, "duplicate_content", "duplicate_of")
 }

@@ -1,7 +1,5 @@
 package assembler
 
-import "sort"
-
 type sourceKey struct {
 	slot, producer, source string
 }
@@ -49,19 +47,6 @@ func supersedeObservations(items []*basicItem, policy map[string]any) ([]*basicI
 			}
 		}
 	}
-	kept, excluded := make([]*basicItem, 0, len(items)), []any{}
-	for _, item := range items {
-		if winner, lost := dropped[item]; lost {
-			excluded = append(excluded, map[string]any{
-				"item_id": item.id, "reason": "superseded", "stage": "assembler",
-				"slot": item.slot, "superseded_by": winner,
-			})
-		} else {
-			kept = append(kept, item)
-		}
-	}
-	sort.Slice(excluded, func(i, j int) bool {
-		return utf16Less(asString(asObject(excluded[i])["item_id"]), asString(asObject(excluded[j])["item_id"]))
-	})
+	kept, excluded := stageExclusions(items, dropped, "superseded", "superseded_by")
 	return kept, excluded, nil
 }

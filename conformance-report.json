@@ -303,8 +303,7 @@
         "R-24",
         "R-26"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "diversity-evidence-required",
@@ -328,8 +327,7 @@
         "R-25",
         "R-26"
       ],
-      "outcome": "failed",
-      "detail": "the payload bytes differ from expected.payload.txt"
+      "outcome": "passed"
     },
     {
       "id": "evidence-cap-omitted",
