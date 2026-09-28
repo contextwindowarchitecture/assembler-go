@@ -448,9 +448,6 @@ func (a *admissionPass) include(item map[string]any, producerID string) error {
 	if count < 0 {
 		return errors.New("tokenizer returned a negative count")
 	}
-	if cap, ok := item["token_budget"].(float64); ok && float64(count) > cap {
-		return featureGap("item token cap")
-	}
 	a.result.items = append(a.result.items, &basicItem{
 		id: asString(item["id"]), slot: asString(item["slot"]), body: body,
 		sourceVersion: asString(item["source_version"]), eligibility: asString(item["eligibility"]),

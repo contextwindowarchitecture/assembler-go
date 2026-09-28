@@ -75,6 +75,17 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if asObject(trace["refused"])["bool"] == true {
 		return Result{Trace: trace}, nil
 	}
+	protectedOverCap, err := protectedLimits(snapshot, items, rendererID, tokenizer)
+	if err != nil {
+		return Result{}, err
+	}
+	if protectedOverCap {
+		trace["refused"] = map[string]any{"bool": true, "reason": "protected_content_over_budget"}
+		return Result{Trace: trace}, nil
+	}
+	if err := checkOtherItemCaps(snapshot, items, rendererID, tokenizer); err != nil {
+		return Result{}, err
+	}
 	payload, included, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err
@@ -82,15 +93,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if count < 0 {
 		return Result{}, errors.New("tokenizer returned a negative count")
 	}
-	budget := asObject(snapshot["budget"])
-	margin := 0
-	if value, ok := budget["margin_percent"].(float64); ok {
-		margin = int(value)
-	}
-	if count > int(^uint(0)>>1)/(100+margin) {
-		return Result{}, featureGap("oversized token count")
-	}
-	if float64((count*(100+margin)+99)/100) > budget["input"].(float64) {
+	if !fitsBudget(count, asObject(snapshot["budget"])) {
 		return Result{}, featureGap("budget fitting")
 	}
 	if evidenceRequired(items, asObject(snapshot["route_policy"])) {

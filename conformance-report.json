@@ -54,8 +54,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "budget-margin-rounding",
@@ -450,8 +449,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: budget fitting"
+      "outcome": "passed"
     },
     {
       "id": "protected-over-cap",
@@ -460,8 +458,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: item token cap"
+      "outcome": "passed"
     },
     {
       "id": "protected-over-slot-cap",
@@ -470,8 +467,7 @@
         "R-17",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "rendered a payload where the case expects a refusal"
+      "outcome": "passed"
     },
     {
       "id": "render-attribute-escaping",
