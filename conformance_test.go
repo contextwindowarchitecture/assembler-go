@@ -14,10 +14,7 @@ import (
 )
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
-var pending = map[string]bool{
-	"budget-slot-floor-refused":   true,
-	"budget-slot-floor-under-cap": true, "budget-slot-floor": true,
-}
+var pending = map[string]bool{}
 
 func TestConformanceCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")

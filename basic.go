@@ -95,11 +95,12 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 		return Result{}, err
 	}
 	trace["excluded"] = append(asArray(trace["excluded"]), cappedSlots...)
-	items, shed, err := shedDroppable(snapshot, items, rendererID, tokenizer)
+	floor := newFloorGuard(snapshot, rendererID, tokenizer)
+	items, shed, err := shedDroppable(snapshot, items, rendererID, tokenizer, floor)
 	if err != nil {
 		return Result{}, err
 	}
-	items, compressedShed, err := reduceCompressible(snapshot, items, rendererID, tokenizer)
+	items, compressedShed, err := reduceCompressible(snapshot, items, rendererID, tokenizer, floor)
 	if err != nil {
 		return Result{}, err
 	}
@@ -113,7 +114,8 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 		return Result{}, errors.New("tokenizer returned a negative count")
 	}
 	if !fitsBudget(count, asObject(snapshot["budget"])) {
-		return Result{}, featureGap("budget fitting")
+		trace["refused"] = map[string]any{"bool": true, "reason": "slot_floor_over_budget"}
+		return Result{Trace: trace}, nil
 	}
 	if evidenceRequired(items, asObject(snapshot["route_policy"])) {
 		trace["refused"] = map[string]any{"bool": true, "reason": "evidence_required"}

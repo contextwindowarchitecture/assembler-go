@@ -3,9 +3,8 @@ package assembler
 import "sort"
 
 // shedDroppable tests the whole rendered payload after each omission.
-func shedDroppable(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) ([]*basicItem, []any, error) {
+func shedDroppable(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer, floor *floorGuard) ([]*basicItem, []any, error) {
 	policy := asObject(snapshot["route_policy"])
-	slotRules := objectValue(policy["slots"])
 	_, _, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return nil, nil, err
@@ -13,24 +12,23 @@ func shedDroppable(snapshot map[string]any, items []*basicItem, rendererID strin
 	if fitsBudget(count, asObject(snapshot["budget"])) {
 		return items, []any{}, nil
 	}
-	for _, rawRule := range slotRules {
-		if objectValue(rawRule)["min_tokens"] != nil {
-			return nil, nil, featureGap("slot floor fitting")
-		}
-	}
 	candidates := sheddingOrder(items, policy, "droppable")
 	current := append([]*basicItem(nil), items...)
 	excluded := []any{}
 	for _, candidate := range candidates {
-		for i, item := range current {
-			if item == candidate {
-				current = append(current[:i], current[i+1:]...)
-				break
-			}
+		if floor.frozen[candidate.slot] {
+			continue
 		}
-		excluded = append(excluded, map[string]any{
-			"item_id": candidate.id, "reason": "over_budget", "stage": "assembler", "slot": candidate.slot,
-		})
+		next := omitItem(append([]*basicItem(nil), current...), candidate)
+		allowed, err := floor.allow(next, candidate)
+		if err != nil {
+			return nil, nil, err
+		}
+		if !allowed {
+			continue
+		}
+		current = next
+		excluded = append(excluded, budgetExclusion(candidate))
 		_, _, count, err := renderBasic(snapshot, current, rendererID, tokenizer)
 		if err != nil {
 			return nil, nil, err
@@ -53,7 +51,7 @@ type fittingPass struct {
 	listed            map[string]bool
 }
 
-func reduceCompressible(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer) ([]*basicItem, []any, error) {
+func reduceCompressible(snapshot map[string]any, items []*basicItem, rendererID string, tokenizer Tokenizer, floor *floorGuard) ([]*basicItem, []any, error) {
 	policy := asObject(snapshot["route_policy"])
 	pass := &fittingPass{
 		snapshot: snapshot, items: append([]*basicItem(nil), items...),
@@ -67,10 +65,9 @@ func reduceCompressible(snapshot map[string]any, items []*basicItem, rendererID 
 	}
 	walk := reductionWalk{
 		items: &pass.items, excluded: &pass.excluded, candidates: pass.candidates,
-		compress: func(item *basicItem) error {
-			_, err := chooseVariant(pass.snapshot, pass.items, item, pass.rendererID, pass.tokenizer)
-			return err
-		}, fits: pass.fits,
+		compress: func(item *basicItem) (bool, error) {
+			return chooseVariant(pass.snapshot, pass.items, item, pass.rendererID, pass.tokenizer)
+		}, fits: pass.fits, floor: floor,
 	}
 	for _, raw := range arrayValue(policy["fitting_order"]) {
 		step := asObject(raw)

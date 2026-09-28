@@ -2,17 +2,17 @@
 
 A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
 
-Status: in development. The current report records 49/52 passing cases and 22/22 rejected invalid snapshots. Unimplemented assembly features return an explicit gap.
+Status: the current report passes all 52 published assembly cases and rejects all 22 invalid snapshots.
 
 ## Install
 
-TODO: how to add the package to a project.
+Use Go 1.26 or newer, then add the module with `go get github.com/contextwindowarchitecture/assembler-go`.
 
 ## Use
 
 `Assemble(snapshotJSON, Options{})` accepts the frozen snapshot as JSON bytes. It returns a `Result` with rendered UTF-8 `Payload` and a `Trace`. A refusal has a nil payload. Invalid snapshots return `SnapshotRejectedError` with no result; unknown component ids return `UnsupportedComponentError`. Callers can supply tokenizers in `Options.Tokenizers` for one call; the built-in tokenizer ids cannot be replaced.
 
-Admission applies the published schema, producer permissions, route eligibility, defaults and reason precedence. Declared instruction and fact conflicts resolve or escalate through route policy, followed by source supersession, exact deduplication and source diversity caps. Missing required slots, protected unplaced slots, unresolved conflicts and insufficient evidence refuse with a trace; evidence refusals distinguish missing producer context from budget omissions with or without variants. Protected items refuse when their own cap, slot cap or the protected-only payload exceeds budget. Per-item caps and slot caps run before budget pressure, which sheds droppable items, then compresses or omits compressible items in route order, counting the whole rendered payload after each change; slot floors remain pending. Both built-in renderers are available. The current case coverage is recorded in `conformance-report.json`.
+Admission applies the published schema, producer permissions, route eligibility, defaults and reason precedence. Declared instruction and fact conflicts resolve or escalate through route policy, followed by source supersession, exact deduplication and source diversity caps. Missing required slots, protected unplaced slots, unresolved conflicts and insufficient evidence refuse with a trace; evidence refusals distinguish missing producer context from budget omissions with or without variants. Protected items refuse when their own cap, slot cap or the protected-only payload exceeds budget. Per-item caps and slot caps run before budget pressure, which sheds droppable items, then compresses or omits compressible items in route order, counting the whole rendered payload after each change. During budget pressure, a reduction that would cross a slot's `min_tokens` freezes that slot; a payload still over budget refuses with `slot_floor_over_budget`. Both built-in renderers are available. The current case coverage is recorded in `conformance-report.json`.
 
 ## Requirements
 
@@ -25,7 +25,7 @@ go mod download
 go build ./...
 go test ./...
 python3 scripts/vendor_contract.py --verify
-python3 scripts/check_report.py --allow-failures
+python3 scripts/check_report.py
 ```
 
 After a contract update, run `python3 scripts/generate_contract.py` to refresh the embedded schemas and policy tables.
@@ -40,10 +40,10 @@ Every reduction under budget pressure is its own fit test, and every fit test re
 go build -o /tmp/cwa-adapter ./cmd/adapter
 python3 scripts/conformance.py --command /tmp/cwa-adapter \
   --name github.com/contextwindowarchitecture/assembler-go --version 0.1.0 --language Go
-python3 scripts/check_report.py --allow-failures
+python3 scripts/check_report.py
 ```
 
-The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 while ordinary cases remain pending. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id` and `timings`. The committed report is the current run: a test fails when it goes stale.
+The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 if any supported case fails. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id` and `timings`. The committed report is the current run: a test fails when it goes stale.
 
 ## The contract
 

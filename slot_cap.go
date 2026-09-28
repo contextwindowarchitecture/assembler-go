@@ -51,9 +51,8 @@ func (pass *slotCapPass) apply() error {
 	}
 	walk := reductionWalk{
 		items: &pass.items, excluded: &pass.excluded,
-		compress: func(item *basicItem) error {
-			_, err := chooseSlotVariant(pass.snapshot, pass.items, item, pass.slot, pass.rendererID, pass.cap, pass.tokenizer)
-			return err
+		compress: func(item *basicItem) (bool, error) {
+			return chooseSlotVariant(pass.snapshot, pass.items, item, pass.slot, pass.rendererID, pass.cap, pass.tokenizer)
 		}, fits: pass.within,
 	}
 	walk.candidates = sheddingOrder(pass.items, pass.policy, "droppable")
