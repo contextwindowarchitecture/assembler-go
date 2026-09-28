@@ -68,9 +68,6 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if rendererID != "fixture-xml/v1" && rendererID != "cwa-messages/v1" {
 		return Result{}, &UnsupportedComponentError{Component: "renderer", ID: rendererID}
 	}
-	if rendererID != "fixture-xml/v1" {
-		return Result{}, featureGap("cwa-messages rendering")
-	}
 	items, trace, err := prepareBasic(snapshot, tokenizer, tokenizerID, rendererID)
 	if err != nil {
 		return Result{}, err
@@ -78,11 +75,10 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if asObject(trace["refused"])["bool"] == true {
 		return Result{Trace: trace}, nil
 	}
-	payload, included, err := renderBasicXML(snapshot, items, tokenizer)
+	payload, included, count, err := renderBasic(snapshot, items, rendererID, tokenizer)
 	if err != nil {
 		return Result{}, err
 	}
-	count := tokenizer(string(payload))
 	if count < 0 {
 		return Result{}, errors.New("tokenizer returned a negative count")
 	}

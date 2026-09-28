@@ -399,7 +399,7 @@
         "R-21"
       ],
       "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: cwa-messages rendering"
+      "detail": "exited 1: assembly feature not implemented: budget fitting"
     },
     {
       "id": "messages-render",
@@ -409,8 +409,7 @@
         "R-11",
         "R-21"
       ],
-      "outcome": "failed",
-      "detail": "exited 1: assembly feature not implemented: cwa-messages rendering"
+      "outcome": "passed"
     },
     {
       "id": "ordering-astral-ids",
