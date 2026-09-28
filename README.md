@@ -12,6 +12,8 @@ Use Go 1.26 or newer, then add the module with `go get github.com/contextwindowa
 
 `Assemble(snapshotJSON, Options{})` accepts the frozen snapshot as JSON bytes. It returns a `Result` with rendered UTF-8 `Payload` and a `Trace`. A refusal has a nil payload. Invalid snapshots return `SnapshotRejectedError` with no result; unknown component ids return `UnsupportedComponentError`. Callers can supply tokenizers in `Options.Tokenizers` for one call; the built-in tokenizer ids cannot be replaced.
 
+With the same snapshot and component implementations, repeated calls produce identical payload bytes and trace fields; `trace_id` and `timings` are the only fields allowed to vary.
+
 Admission applies the published schema, producer permissions, route eligibility, defaults and reason precedence. Declared instruction and fact conflicts resolve or escalate through route policy, followed by source supersession, exact deduplication and source diversity caps. Missing required slots, protected unplaced slots, unresolved conflicts and insufficient evidence refuse with a trace; evidence refusals distinguish missing producer context from budget omissions with or without variants. Protected items refuse when their own cap, slot cap or the protected-only payload exceeds budget. Per-item caps and slot caps run before budget pressure, which sheds droppable items, then compresses or omits compressible items in route order, counting the whole rendered payload after each change. During budget pressure, a reduction that would cross a slot's `min_tokens` freezes that slot; a payload still over budget refuses with `slot_floor_over_budget`. Both built-in renderers are available. The current case coverage is recorded in `conformance-report.json`.
 
 ## Requirements
