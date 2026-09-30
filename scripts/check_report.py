@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from conformance import LOCK, ROOT, ids, read_json, required_components, schema_problem, utf16, validator_for  # noqa: E402
+from conformance import LOCK, ROOT, ids, optional_components, read_json, required_components, schema_problem, utf16, validator_for  # noqa: E402
 
 
 def check_rows(report: dict, kind: str, directory: Path, ok: str, required: set[str]) -> tuple[list[str], list[str]]:
@@ -41,7 +41,7 @@ def check_rows(report: dict, kind: str, directory: Path, ok: str, required: set[
         if row.get("id") in expected and row.get("outcome") == "skipped":
             snapshot = read_json(directory / row["id"] / "snapshot.json")
             fields = ("tokenizer", "renderer") if kind == "cases" else ("renderer",)
-            if all(snapshot.get(field) in required for field in fields):
+            if not optional_components(snapshot, fields, required):
                 problems.append(f"{kind}: {row['id']} is skipped, but it uses only required components, so it has failed")
     failures = [f"{row.get('id')}: {row.get('outcome')}: {row.get('detail', '')}".rstrip(": ") for row in rows if row.get("outcome") != ok]
     return problems, failures

@@ -176,6 +176,13 @@ def required_components(conformance: Path) -> set[str]:
     return set(re.findall(r"^- `([^`]+)`", section, re.M))
 
 
+def optional_components(snapshot: Any, fields: tuple[str, ...], required: set[str]) -> list[str]:
+    """The optional components a snapshot names in these fields: an ID outside the required set. A missing or
+    non-string field names no component, so it makes nothing optional."""
+    named = {field: snapshot.get(field) for field in fields} if isinstance(snapshot, dict) else {}
+    return [f"{field} {value}" for field, value in named.items() if isinstance(value, str) and value and value not in required]
+
+
 def unsupported(case: Path, fields: tuple[str, ...], required: set[str], stderr: str) -> dict[str, str]:
     """Exit 3. Reporting results skips a case only for an optional component the port lacks; a case whose fields
     name only required components has failed. A rejection looks at its renderer alone: no snapshot check needs a
@@ -184,8 +191,7 @@ def unsupported(case: Path, fields: tuple[str, ...], required: set[str], stderr:
         snapshot = read_json(case / "snapshot.json")
     except ValueError:
         snapshot = None
-    named = {field: snapshot.get(field) for field in fields} if isinstance(snapshot, dict) else {}
-    optional = [f"{field} {value}" for field, value in named.items() if value not in required]
+    optional = optional_components(snapshot, fields, required)
     if optional:
         return {"outcome": "skipped", "detail": stderr or f"uses the optional {', '.join(optional)}"}
     lacking = stderr or "a tokenizer or renderer is not provided"
