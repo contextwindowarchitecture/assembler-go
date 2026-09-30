@@ -14,11 +14,7 @@ import (
 )
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
-var pending = map[string]bool{
-	// An mcp tool sent to governance.capabilities on a route that does not list that slot for its
-	// producer records capability_not_allowed; the case expects producer_slot_not_allowed (R-15, R-21).
-	"admission-route-slots": true,
-}
+var pending = map[string]bool{}
 
 func TestConformanceCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")

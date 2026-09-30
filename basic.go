@@ -242,6 +242,8 @@ func basicTrace(snapshot map[string]any, tokenizerID, rendererID string, exclude
 	return trace, nil
 }
 
+// basicKindSlotAllowed limits a producer's slots by its kind, whatever the route lists (R-8, R-13,
+// R-14, R-15). It only narrows the route's listing: an item must pass both.
 func basicKindSlotAllowed(kind, slot string) bool {
 	if strings.HasPrefix(slot, "state.") {
 		return kind == "state"
@@ -251,8 +253,12 @@ func basicKindSlotAllowed(kind, slot string) bool {
 		return false
 	case "memory":
 		return slot == "interaction.memory"
-	case "retrieval", "mcp":
+	case "retrieval":
 		return slot == "evidence.knowledge" || slot == "evidence.tool_results"
+	case "mcp":
+		// A tool specification may reach governance.capabilities where the route lists that slot
+		// for the producer, and there meets the capability check's capability_not_allowed (R-15).
+		return slot == "evidence.knowledge" || slot == "evidence.tool_results" || slot == "governance.capabilities"
 	case "capability_policy":
 		return slot == "governance.capabilities"
 	default:

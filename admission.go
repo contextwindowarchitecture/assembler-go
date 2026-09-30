@@ -259,11 +259,10 @@ func (a *admissionPass) permissionReason(item map[string]any, producerID, produc
 	for _, raw := range asArray(rule["slots"]) {
 		allowed = allowed || raw == slot
 	}
-	if producerKind == "mcp" && slot == "governance.capabilities" {
-		allowed = true // Capability grants get their own, later reason code.
-	} else {
-		allowed = allowed && basicKindSlotAllowed(producerKind, slot)
-	}
+	// The route's listing and the producer's kind must both allow the slot; producer_slot_not_allowed
+	// precedes capability_not_allowed, so an mcp tool reaches the capability check below only where
+	// the route lists governance.capabilities for its producer (R-15, R-21).
+	allowed = allowed && basicKindSlotAllowed(producerKind, slot)
 	if !allowed {
 		return "producer_slot_not_allowed"
 	}

@@ -35,8 +35,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "the trace differs at /excluded/0/reason: expected \"producer_slot_not_allowed\", got \"capability_not_allowed\""
+      "outcome": "passed"
     },
     {
       "id": "budget-droppable-order",
