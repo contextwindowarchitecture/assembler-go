@@ -29,7 +29,16 @@ func TestConformanceCases(t *testing.T) {
 		id := filepath.Base(filepath.Dir(path))
 		seen[id] = true
 		t.Run(id, func(t *testing.T) {
-			runConformanceCase(t, path, id)
+			got := runCase(filepath.Dir(path), Assemble)
+			switch {
+			case got.outcome == "skipped":
+				t.Skip(got.detail)
+			case pending[id] && got.outcome == "passed":
+				t.Fatal("pending case now passes; remove it from pending")
+			case pending[id]:
+			case got.outcome != "passed":
+				t.Fatal(got.detail)
+			}
 		})
 	}
 	for id := range pending {
@@ -39,32 +48,31 @@ func TestConformanceCases(t *testing.T) {
 	}
 }
 
-func runConformanceCase(t *testing.T, path, id string) {
-	t.Helper()
-	raw, err := os.ReadFile(path)
+// caseOutcome is a case's outcome as the README's Reporting results names it: passed or rejected,
+// failed, or skipped, with detail saying why for the last two.
+type caseOutcome struct{ outcome, detail string }
+
+// assembleFunc is Assemble, or a stand-in a test uses to answer as a port without a component.
+type assembleFunc func(raw []byte, options Options) (Result, error)
+
+// runCase runs the case in directory as the README's Running a case describes.
+func runCase(directory string, assemble assembleFunc) caseOutcome {
+	raw, err := os.ReadFile(filepath.Join(directory, "snapshot.json"))
 	if err != nil {
-		t.Fatal(err)
+		return caseOutcome{"failed", err.Error()}
 	}
-	result, err := Assemble(raw, Options{})
+	result, err := assemble(raw, Options{})
 	if err != nil {
 		var unsupported *UnsupportedComponentError
 		if errors.As(err, &unsupported) {
-			t.Skip(err)
+			return caseOutcome{"skipped", err.Error()}
 		}
-		if pending[id] {
-			return
-		}
-		t.Fatal(err)
+		return caseOutcome{"failed", err.Error()}
 	}
-	if pending[id] {
-		if err := compareCase(filepath.Dir(path), result); err != nil {
-			return
-		}
-		t.Fatal("pending case now passes; remove it from pending")
+	if err := compareCase(directory, result); err != nil {
+		return caseOutcome{"failed", err.Error()}
 	}
-	if err := compareCase(filepath.Dir(path), result); err != nil {
-		t.Fatal(err)
-	}
+	return caseOutcome{outcome: "passed"}
 }
 
 func compareCase(directory string, result Result) error {
