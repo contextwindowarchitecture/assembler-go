@@ -30,16 +30,21 @@ func renderMessages(snapshot map[string]any, items []*basicItem, tokenizer Token
 			body := item.body
 			if wrap == "system" || wrap == "tools" {
 				body = item.bodyRaw
-				entry := map[string]any{"id": item.id, "text": body}
+				text := body
+				entry := map[string]any{"id": item.id}
 				if item.conflictID != "" {
 					entry["conflict"] = item.conflictID
+					text = conflictMark(item.conflictID, body)
 				}
+				entry["text"] = text
 				if wrap == "system" {
 					system = append(system, entry)
 				} else {
 					tools = append(tools, entry)
 				}
-				textCount := tokenizer(body)
+				// The mark is wrapper text: it counts here, in the payload's count, and never in
+				// the occurrence's own tokens below, which count the unescaped body alone.
+				textCount := tokenizer(text)
 				if textCount < 0 {
 					return nil, nil, 0, errors.New("tokenizer returned a negative count")
 				}
@@ -71,6 +76,13 @@ func renderMessages(snapshot map[string]any, items []*basicItem, tokenizer Token
 		return nil, nil, 0, err
 	}
 	return []byte(encoded), included, count, nil
+}
+
+// conflictMark puts a surfaced conflict member's mark into its system or tools text, since an
+// application hands the model each entry's text and nothing else (R-11). The body stays unescaped
+// (R-10); the group id is escaped as fixture-xml/v1 escapes attribute values.
+func conflictMark(groupID, body string) string {
+	return "<conflict group=\"" + xmlAttrEscaper.Replace(groupID) + "\">\n" + body + "\n</conflict>"
 }
 
 func placementItems(items []*basicItem, slot string) []*basicItem {
