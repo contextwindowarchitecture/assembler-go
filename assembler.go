@@ -3,7 +3,8 @@ package assembler
 // Tokenizer counts the text a renderer emits.
 type Tokenizer func(string) int
 
-// Options supplies model tokenizers for one assembly call.
+// Options supplies the application's own tokenizers for one assembly call, keyed by id. A
+// tokenizer under a published tokenizer's id stops the call before assembly, with no result (R-16).
 type Options struct {
 	Tokenizers map[string]Tokenizer
 }

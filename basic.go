@@ -41,6 +41,10 @@ func slotDefaults() (map[string]map[string]any, error) {
 
 func featureGap(name string) error { return fmt.Errorf("assembly feature not implemented: %s", name) }
 
+// resolveTokenizer stops the call before assembly when the application supplies a tokenizer under
+// a published tokenizer's id, whatever id the snapshot names, so a trace that names a published
+// tokenizer always means its published count (R-16). The guarded ids are the ones the README's
+// Tokenizers and renderers lists, including any this port does not provide.
 func resolveTokenizer(id string, options Options) (Tokenizer, error) {
 	for _, builtin := range []string{"fixture-whitespace/v1", "estimate-utf8/v1"} {
 		if _, exists := options.Tokenizers[builtin]; exists {
