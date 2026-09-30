@@ -111,7 +111,7 @@ The adapter is started once per snapshot with the snapshot file's bytes on stdin
 | 2 | rejected before assembly (R-17) | stderr: the problems, in the port's words |
 | 3 | a tokenizer or renderer the port does not provide | stderr: which one, e.g. `renderer some-renderer/v1 is not provided` |
 
-Any other exit code fails the case, with stderr as the detail. Give the adapter the raw bytes rather than a parsed object, so the I-JSON checks see the text as written. A Node adapter for the TypeScript port is a dozen lines, and one for the port will look much the same:
+Exit 3 skips the case only when it uses a component the vendored README does not require. The four published components are required, so a port that lacks one fails every case that uses it (README, Reporting results), and `scripts/check_report.py` treats a skip of such a case as a problem. Any other exit code fails the case, with stderr as the detail. Give the adapter the raw bytes rather than a parsed object, so the I-JSON checks see the text as written. A Node adapter for the TypeScript port is a dozen lines, and one for the port will look much the same:
 
 ```js
 import { readFileSync } from 'node:fs';

@@ -7,8 +7,10 @@
 Checks that the report validates against conformance_report.schema.json (when the jsonschema package is
 installed); that its contract names the lock's website commit and dirty flag; that cases and rejections list
 every directory under the vendored conformance cases and rejections, in id order, with the rules from each
-case.json; and, unless --allow-failures, that every case passed and every rejection snapshot was rejected
-(conformance/README.md, Reporting results). CI runs it so a partial or stale report never lands.
+case.json; that no case is skipped unless it uses a component the vendored README does not require, since a
+port that lacks a required one has failed the case; and, unless --allow-failures, that every case passed and
+every rejection snapshot was rejected (conformance/README.md, Reporting results). CI runs it so a partial or
+stale report never lands.
 """
 from __future__ import annotations
 
@@ -18,10 +20,10 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from conformance import LOCK, ROOT, ids, read_json, schema_problem, utf16, validator_for  # noqa: E402
+from conformance import LOCK, ROOT, ids, read_json, required_components, schema_problem, utf16, validator_for  # noqa: E402
 
 
-def check_rows(report: dict, kind: str, directory: Path, ok: str) -> tuple[list[str], list[str]]:
+def check_rows(report: dict, kind: str, directory: Path, ok: str, required: set[str]) -> tuple[list[str], list[str]]:
     """Structural problems with one list of the report, and the ids that did not reach the counting outcome."""
     rows = report.get(kind)
     if rows is None:
@@ -36,6 +38,11 @@ def check_rows(report: dict, kind: str, directory: Path, ok: str) -> tuple[list[
     for row in rows:
         if row.get("id") in expected and row.get("rules") != read_json(directory / row["id"] / "case.json")["rules"]:
             problems.append(f"{kind}: {row['id']} does not carry the rules from its case.json")
+        if row.get("id") in expected and row.get("outcome") == "skipped":
+            snapshot = read_json(directory / row["id"] / "snapshot.json")
+            fields = ("tokenizer", "renderer") if kind == "cases" else ("renderer",)
+            if all(snapshot.get(field) in required for field in fields):
+                problems.append(f"{kind}: {row['id']} is skipped, but it uses only required components, so it has failed")
     failures = [f"{row.get('id')}: {row.get('outcome')}: {row.get('detail', '')}".rstrip(": ") for row in rows if row.get("outcome") != ok]
     return problems, failures
 
@@ -67,7 +74,7 @@ def main() -> int:
         problems.append(f"contract is {json.dumps(report.get('contract'))}, but the lock says {json.dumps(contract)}: rerun the conformance command")
     failures: list[str] = []
     for kind, ok in (("cases", "passed"), ("rejections", "rejected")):
-        found, failed = check_rows(report, kind, args.conformance / kind, ok)
+        found, failed = check_rows(report, kind, args.conformance / kind, ok, required_components(args.conformance))
         problems += found
         failures += failed
 

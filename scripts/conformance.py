@@ -8,7 +8,9 @@ The adapter command is started once per snapshot with the snapshot file's bytes 
     0  assembled, refusals included: stdout holds {"payload": <base64 of the payload bytes, or null when refused>,
        "trace": <the trace>}
     2  rejected before assembly (R-17): stderr lists the problems in the port's words; stdout is not read
-    3  a tokenizer or renderer the port does not provide: stderr names it, e.g. "renderer x/v1 is not provided"
+    3  a tokenizer or renderer the port does not provide: stderr names it, e.g. "renderer x/v1 is not provided".
+       The case is skipped only when it uses a component the vendored README does not require; a case that uses
+       only required ones has failed (conformance/README.md, Reporting results)
 
 Any other exit code, or stdout that is not such an object, fails the case with stderr as the detail. The runner
 compares as conformance/README.md, Running a case, says: the payload byte for byte, the trace field for field
@@ -24,6 +26,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import re
 import shlex
 import subprocess
 import sys
@@ -163,10 +166,36 @@ def refusal(trace: Any) -> str:
     return f"refused with {reason}" if reason else "refused"
 
 
-def run_case(adapter: Adapter, trace_validator: Any, case: Path) -> dict[str, str]:
+def required_components(conformance: Path) -> set[str]:
+    """The tokenizers and renderers every implementation provides: the bullets under the vendored README's
+    Tokenizers and renderers heading, which opens "Every implementation provides the tokenizers and renderers below"."""
+    text = (conformance / "README.md").read_text(encoding="utf-8")
+    if "\n## Tokenizers and renderers\n" not in text:
+        sys.exit(f"{conformance / 'README.md'} has no Tokenizers and renderers section; re-vendor the contract")
+    section = text.split("\n## Tokenizers and renderers\n", 1)[1].split("\n## ", 1)[0]
+    return set(re.findall(r"^- `([^`]+)`", section, re.M))
+
+
+def unsupported(case: Path, fields: tuple[str, ...], required: set[str], stderr: str) -> dict[str, str]:
+    """Exit 3. Reporting results skips a case only for an optional component the port lacks; a case whose fields
+    name only required components has failed. A rejection looks at its renderer alone: no snapshot check needs a
+    tokenizer."""
+    try:
+        snapshot = read_json(case / "snapshot.json")
+    except ValueError:
+        snapshot = None
+    named = {field: snapshot.get(field) for field in fields} if isinstance(snapshot, dict) else {}
+    optional = [f"{field} {value}" for field, value in named.items() if value not in required]
+    if optional:
+        return {"outcome": "skipped", "detail": stderr or f"uses the optional {', '.join(optional)}"}
+    lacking = stderr or "a tokenizer or renderer is not provided"
+    return {"outcome": "failed", "detail": f"a required component is not provided: {lacking}"}
+
+
+def run_case(adapter: Adapter, trace_validator: Any, case: Path, required: set[str]) -> dict[str, str]:
     code, stdout, stderr = adapter.run((case / "snapshot.json").read_bytes())
     if code == 3:
-        return {"outcome": "skipped", "detail": stderr or "a tokenizer or renderer is not provided"}
+        return unsupported(case, ("tokenizer", "renderer"), required, stderr)
     if code == 2:
         return {"outcome": "failed", "detail": f"rejected the snapshot where the case expects an assembly: {stderr}"}
     if code != 0:
@@ -192,12 +221,12 @@ def run_case(adapter: Adapter, trace_validator: Any, case: Path) -> dict[str, st
     return {"outcome": "passed"}
 
 
-def run_rejection(adapter: Adapter, case: Path) -> dict[str, str]:
+def run_rejection(adapter: Adapter, case: Path, required: set[str]) -> dict[str, str]:
     code, stdout, stderr = adapter.run((case / "snapshot.json").read_bytes())
     if code == 2:
         return {"outcome": "rejected"}
     if code == 3:
-        return {"outcome": "skipped", "detail": stderr or "a tokenizer or renderer is not provided"}
+        return unsupported(case, ("renderer",), required, stderr)
     if code == 0:
         result, problem = parse_result(stdout)
         if problem:
@@ -235,12 +264,13 @@ def main() -> int:
     if args.language:
         implementation["language"] = args.language
     cases_dir, rejections_dir = args.conformance / "cases", args.conformance / "rejections"
+    required = required_components(args.conformance)
     report = {
         "implementation": implementation,
         "contract": {"website_commit": lock["website_commit"], "dirty": lock["dirty"]},
-        "cases": [{"id": id, "rules": read_json(cases_dir / id / "case.json")["rules"], **run_case(adapter, trace_validator, cases_dir / id)}
+        "cases": [{"id": id, "rules": read_json(cases_dir / id / "case.json")["rules"], **run_case(adapter, trace_validator, cases_dir / id, required)}
                   for id in ids(cases_dir)],
-        "rejections": [{"id": id, "rules": read_json(rejections_dir / id / "case.json")["rules"], **run_rejection(adapter, rejections_dir / id)}
+        "rejections": [{"id": id, "rules": read_json(rejections_dir / id / "case.json")["rules"], **run_rejection(adapter, rejections_dir / id, required)}
                        for id in ids(rejections_dir)],
     }
     args.out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

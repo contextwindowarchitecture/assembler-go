@@ -45,7 +45,7 @@ python3 scripts/conformance.py --command /tmp/cwa-adapter \
 python3 scripts/check_report.py
 ```
 
-The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 if any supported case fails. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id`, `timings` and `recovery.detail`. The committed report is the current run: a test fails when it goes stale.
+The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 unless every case passed and every rejection snapshot was rejected. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id`, `timings` and `recovery.detail`. `conformance/README.md` requires every implementation to provide the four published components, `fixture-whitespace/v1`, `estimate-utf8/v1`, `fixture-xml/v1` and `cwa-messages/v1`, and the runner reads that list from its Tokenizers and renderers section. A case the adapter reports as unsupported is skipped only when its snapshot names a tokenizer or renderer outside that list, and a rejection only when its renderer is outside it; one that uses only required components has failed (Reporting results), and `check_report.py` treats a skip of such a case as a problem. The committed report is the current run: a test fails when it goes stale.
 
 ## The contract
 
