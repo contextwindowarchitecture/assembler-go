@@ -12,7 +12,7 @@ The adapter command is started once per snapshot with the snapshot file's bytes 
 
 Any other exit code, or stdout that is not such an object, fails the case with stderr as the detail. The runner
 compares as conformance/README.md, Running a case, says: the payload byte for byte, the trace field for field
-without trace_id and timings, and it validates each trace against trace.schema.json when the jsonschema package
+without trace_id, timings and recovery.detail, and it validates each trace against trace.schema.json when the jsonschema package
 is installed. It writes the report in the shape of conformance_report.schema.json (Reporting results), prints a
 summary, and exits 1 unless every case passed and every rejection snapshot was rejected.
 
@@ -116,10 +116,13 @@ def first_difference(expected: Any, actual: Any, path: str = "") -> str | None:
 
 
 def comparable(trace: Any) -> Any:
-    """Trace ids and timings may differ between runs (R-23); every other member is compared."""
+    """Trace ids, timings and recovery.detail may differ (R-23); every other member is compared."""
     if not isinstance(trace, dict):
         return trace
-    return {k: v for k, v in trace.items() if k not in ("trace_id", "timings")}
+    kept = {k: v for k, v in trace.items() if k not in ("trace_id", "timings")}
+    if isinstance(kept.get("recovery"), dict):
+        kept["recovery"] = {k: v for k, v in kept["recovery"].items() if k != "detail"}
+    return kept
 
 
 class Adapter:

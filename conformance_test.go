@@ -103,10 +103,14 @@ func compareCase(directory string, result Result) error {
 	if err := json.Unmarshal(actualBody, &actual); err != nil {
 		return err
 	}
-	delete(want, "trace_id")
-	delete(want, "timings")
-	delete(actual, "trace_id")
-	delete(actual, "timings")
+	// trace_id, timings and recovery.detail may differ (README, Running a case; R-23).
+	for _, trace := range []map[string]any{want, actual} {
+		delete(trace, "trace_id")
+		delete(trace, "timings")
+		if recovery, ok := trace["recovery"].(map[string]any); ok {
+			delete(recovery, "detail")
+		}
+	}
 	if !reflect.DeepEqual(actual, want) {
 		return fmt.Errorf("trace differs")
 	}
@@ -155,5 +159,32 @@ func TestReportCurrent(t *testing.T) {
 	}
 	if !bytes.Equal(got, want) {
 		t.Fatal("conformance-report.json is stale")
+	}
+}
+
+// TestCompareIgnoresRecoveryDetail follows the README's Running a case: recovery.detail is free
+// text for people, removed with trace_id and timings before the trace comparison (R-23), while
+// recovery.action is still compared.
+func TestCompareIgnoresRecoveryDetail(t *testing.T) {
+	directory := "vendor/cwa/conformance/cases/conflict-request-context"
+	raw, err := os.ReadFile(filepath.Join(directory, "snapshot.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := Assemble(raw, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	recovery, ok := result.Trace["recovery"].(map[string]any)
+	if !ok {
+		t.Fatal("the case records no recovery")
+	}
+	recovery["detail"] = "Ask the user which instruction applies."
+	if err := compareCase(directory, result); err != nil {
+		t.Errorf("recovery.detail was compared: %v", err)
+	}
+	recovery["action"] = "retrieve_narrower"
+	if err := compareCase(directory, result); err == nil {
+		t.Error("recovery.action was not compared")
 	}
 }

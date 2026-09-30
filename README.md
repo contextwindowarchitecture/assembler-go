@@ -45,7 +45,7 @@ python3 scripts/conformance.py --command /tmp/cwa-adapter \
 python3 scripts/check_report.py
 ```
 
-The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 if any supported case fails. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id` and `timings`. The committed report is the current run: a test fails when it goes stale.
+The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 if any supported case fails. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id`, `timings` and `recovery.detail`. The committed report is the current run: a test fails when it goes stale.
 
 ## The contract
 

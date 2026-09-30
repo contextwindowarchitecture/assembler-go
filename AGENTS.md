@@ -24,7 +24,7 @@ Everything here is the rule set the Python reference assembler and the TypeScrip
 
 ## Conformance cases as tests
 
-- Every case under `vendor/cwa/conformance/cases/` is a test: assemble its snapshot, validate the trace against `trace.schema.json`, compare the trace without `trace_id` and `timings`, and compare the payload bytes (README, Running a case). Every rejection case under `rejections/` is a test that the snapshot is rejected before assembly, with no payload and no trace.
+- Every case under `vendor/cwa/conformance/cases/` is a test: assemble its snapshot, validate the trace against `trace.schema.json`, compare the trace without `trace_id`, `timings` and `recovery.detail`, and compare the payload bytes (README, Running a case). Every rejection case under `rejections/` is a test that the snapshot is rejected before assembly, with no payload and no trace.
 - A case this port does not pass yet goes in a `PENDING` set in the conformance test, which marks it as a strict expected failure: the suite stays green, and fails as soon as the case starts passing. The set only shrinks. Remove a case from it in the commit that makes it pass. Rejection cases have no `PENDING`: a vendored one this port does not reject yet is fixed in its vendor commit.
 - When a re-vendor makes existing code fail in a way `PENDING` cannot hold (a wrong payload, a crash), no vendor-only commit can pass: vendor and fix in one commit, and say why in its body.
 
