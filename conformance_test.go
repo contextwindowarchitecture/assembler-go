@@ -79,7 +79,8 @@ func runCase(directory string, assemble assembleFunc) caseOutcome {
 // unsupportedOutcome is the outcome of a case the port cannot run for want of a tokenizer or
 // renderer (README, Reporting results). Every implementation provides the required ones, so the
 // case is skipped only when one of its snapshot's fields names an optional component, outside
-// the required set; a case whose fields name only required ones has failed.
+// the required set; a case whose fields name only required ones has failed. A rejection case
+// passes only its renderer field, since no snapshot check needs a tokenizer.
 func unsupportedOutcome(raw []byte, err error, fields ...string) caseOutcome {
 	required, readErr := requiredComponents()
 	if readErr != nil {
