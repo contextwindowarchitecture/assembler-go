@@ -163,7 +163,7 @@ The TypeScript port's README is the model. In order:
 
 1. The package name, one sentence on what it does (admits, resolves, fits, renders, traces), and a status line with the case counts it passes.
 2. Install.
-3. Use: the assemble call takes a snapshot in the shape of `snapshot.schema.json` and returns the payload bytes, or null when refused, with the trace; an invalid snapshot raises a rejection with its problems and no trace; an unknown tokenizer or renderer raises an unsupported-component error; callers pass their own tokenizers keyed by id; `trace_id` and `timings` may differ between runs and nothing else does.
+3. Use: the assemble call takes a snapshot in the shape of `snapshot.schema.json` and returns the payload bytes, or null when refused, with the trace; an invalid snapshot raises a rejection with its problems and no trace; an unknown tokenizer or renderer raises an unsupported-component error; callers may pass their own tokenizers under IDs no published tokenizer uses, and a published ID stops the call before assembly (R-16); the port takes no renderer of the caller's; `trace_id` and `timings` may differ between runs and nothing else does.
 4. Requirements: runtime versions.
 5. Development: the commands.
 6. Cost: the fit test's cost, as the README's Fitting section states it.
