@@ -30,7 +30,7 @@ A port is conformant when every published case's payload matches byte for byte a
 
 ## Step 1: make the repository
 
-1. Create the repository from this template. Name it `assembler-go` in the organization, as `assembler-python` and `assembler-typescript` are; the local folder is `cwa-assembler-go`.
+1. Create the repository from this template. Name it `assembler-go` in the organization, as `assembler-python` and `assembler-typescript` are; the local folder is `assembler-go` too.
 2. Name the port, once, from its root. The package name follows the ecosystem's convention; the TypeScript one is `@contextwindowarchitecture/assembler`. For a Go port:
 
    ```sh
@@ -134,7 +134,7 @@ The runner compares exactly as a native runner must, validates each trace agains
 The Assembler page shows one row per implementation and counts, per requirement, the cases each one passes. Adding a port takes one import and four small edits in the website repository:
 
 1. Make sure the port is a git repository with a commit and an `origin` remote: the import names the repository from the remote and the run from the commit. The report must name a clean website commit that the website checkout has.
-2. Import: `node scripts/import-conformance-report.mjs ../cwa-assembler-go contract/assembler-go-conformance.json`.
+2. Import: `node scripts/import-conformance-report.mjs ../assembler-go contract/assembler-go-conformance.json`.
 3. Add `{ label: 'Go', file: 'contract/assembler-go-conformance.json' }` to `IMPLEMENTATIONS` in `scripts/conformance-reports.mjs`, and the same pair to `IMPORTED` in `tests/website.test.mjs`.
 4. Add the file to the sources-of-truth table in the website README, and update the two sentences that name the implementations: the matrix note on `assembler.html` and the Reporting results section of `conformance/README.md`.
 5. `npm run build:contract`, `npm test`, `python3 conformance/check.py`, then commit. Re-import after every run of the port that changes its report.
