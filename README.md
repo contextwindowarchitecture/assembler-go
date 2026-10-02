@@ -32,6 +32,8 @@ python3 scripts/check_report.py
 
 After a contract update, run `python3 scripts/generate_contract.py` to refresh the embedded schemas and policy tables.
 
+CI (`.github/workflows/ci.yml`) runs the build and tests on Go 1.26 and 1.27, checks the committed conformance report, and checks the vendored contract against the website commit `vendor/cwa.lock.json` pins. Each tag gets a GitHub release once CI passes on the tagged commit (`.github/workflows/release.yml`); its notes name that website commit and list the tag's own commits, written by git-cliff. A tag that is not `vX.Y.Z` is a prerelease, and a tag pushed before the workflow existed is released with `gh workflow run release.yml -f tag=<tag>`.
+
 ## Cost
 
 Every reduction under budget pressure is its own fit test, and every fit test renders and counts the whole payload (conformance/README.md, Fitting). Keep the cost down at the source, as the spec advises: send no more passages than the route's budget can use, and bound slots with `max_per_source` or `max_tokens`.
