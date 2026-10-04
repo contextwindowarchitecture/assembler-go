@@ -94,12 +94,14 @@ func TestUnsupportedComponentRejections(t *testing.T) {
 			}
 			ids[component] = id
 		}
-		want := "failed"
-		if !required[ids["renderer"]] {
-			want = "skipped"
-		}
+		// Skipped only when the port lacks an optional renderer: no snapshot check needs a tokenizer, so
+		// stopping for one, required or not, fails the rejection case.
 		for _, component := range []string{"tokenizer", "renderer"} {
 			id := ids[component]
+			want := "failed"
+			if component == "renderer" && !required[id] {
+				want = "skipped"
+			}
 			lacking := &UnsupportedComponentError{Component: component, ID: id}
 			without := func([]byte, Options) (Result, error) { return Result{}, lacking }
 			if got := runRejection(filepath.Dir(path), without); got.outcome != want {

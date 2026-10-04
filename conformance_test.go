@@ -77,27 +77,28 @@ func runCase(directory string, assemble assembleFunc) caseOutcome {
 }
 
 // unsupportedOutcome is the outcome of a case the port cannot run for want of a tokenizer or
-// renderer (README, Reporting results). Every implementation provides the required ones, so the
-// case is skipped only when one of its snapshot's fields names an optional component, outside
-// the required set; a case whose fields name only required ones has failed. A rejection case
-// passes only its renderer field, since no snapshot check needs a tokenizer.
+// renderer (README, Reporting results). It is skipped only for the component err says the port
+// lacks, when that one is optional, outside the required set, and the case uses it in one of
+// fields; lacking a required one fails the case even when it also uses an optional component. A
+// rejection case passes only its renderer field, since no snapshot check needs a tokenizer. The
+// detail is err's text, "<kind> <id> is not provided", which scripts/check_report.py reads.
 func unsupportedOutcome(raw []byte, err error, fields ...string) caseOutcome {
 	required, readErr := requiredComponents()
 	if readErr != nil {
 		return caseOutcome{"failed", readErr.Error()}
 	}
-	// A snapshot that does not parse names no optional component.
+	var lacking *UnsupportedComponentError
+	if !errors.As(err, &lacking) {
+		return caseOutcome{"failed", err.Error()}
+	}
+	// A snapshot that does not parse names no component, so nothing it lacks is the case's.
 	var snapshot map[string]json.RawMessage
 	_ = json.Unmarshal(raw, &snapshot)
-	var optional []string
 	for _, field := range fields {
 		var id string
-		if json.Unmarshal(snapshot[field], &id) == nil && id != "" && !required[id] {
-			optional = append(optional, field+" "+id)
+		if field == lacking.Component && json.Unmarshal(snapshot[field], &id) == nil && id == lacking.ID && !required[id] {
+			return caseOutcome{"skipped", err.Error()}
 		}
-	}
-	if len(optional) > 0 {
-		return caseOutcome{"skipped", fmt.Sprintf("%v: the case uses the optional %s", err, strings.Join(optional, " and "))}
 	}
 	return caseOutcome{"failed", "a required component is not provided: " + err.Error()}
 }
@@ -295,11 +296,13 @@ func TestUnsupportedComponentCases(t *testing.T) {
 		if err := json.Unmarshal(raw, &named); err != nil {
 			t.Fatal(err)
 		}
-		want := "failed"
-		if !required[named.Tokenizer] || !required[named.Renderer] {
-			want = "skipped"
-		}
+		// Skipped only for the component the port says it lacks, when that one is optional: lacking a
+		// required one fails the case even when it also uses an optional component (blocks-budget).
 		for _, lacking := range []UnsupportedComponentError{{"tokenizer", named.Tokenizer}, {"renderer", named.Renderer}} {
+			want := "failed"
+			if !required[lacking.ID] {
+				want = "skipped"
+			}
 			without := func([]byte, Options) (Result, error) { return Result{}, &lacking }
 			if got := runCase(filepath.Dir(path), without); got.outcome != want {
 				t.Errorf("%s without its %s %s: %s, want %s", filepath.Base(filepath.Dir(path)), lacking.Component, lacking.ID, got.outcome, want)

@@ -109,9 +109,9 @@ The adapter is started once per snapshot with the snapshot file's bytes on stdin
 | --- | --- | --- |
 | 0 | assembled, refusals included | stdout: `{"payload": <base64 of the payload bytes, or null when refused>, "trace": <the trace>}` |
 | 2 | rejected before assembly (R-17) | stderr: the problems, in the port's words |
-| 3 | a tokenizer or renderer the port does not provide | stderr: which one, e.g. `renderer some-renderer/v1 is not provided` |
+| 3 | a tokenizer or renderer the port does not provide | stderr: each one it lacks, a line apiece, exactly `tokenizer <id> is not provided` or `renderer <id> is not provided`, e.g. `renderer some-renderer/v1 is not provided` |
 
-Exit 3 skips the case only when it uses a component the vendored README does not require. The four components it lists before its Optional heading are required, so a port that lacks one fails every case that uses it (README, Reporting results), and `scripts/check_report.py` treats a skip of such a case as a problem. Any other exit code fails the case, with stderr as the detail. Give the adapter the raw bytes rather than a parsed object, so the I-JSON checks see the text as written. A Node adapter for the TypeScript port is a dozen lines, and one for the port will look much the same:
+Exit 3 skips the case only when a component stderr names is one the vendored README does not require and the case uses it. The four components it lists before its Optional heading are required, so a port that lacks one fails every case that uses it, even a case that also uses an optional component (README, Reporting results). An exit 3 that names no component fails the case too. The report's `detail` for a skip repeats the line, and `scripts/check_report.py` treats a skip whose detail names no optional component its case uses as a problem. Any other exit code fails the case, with stderr as the detail. Give the adapter the raw bytes rather than a parsed object, so the I-JSON checks see the text as written. A Node adapter for the TypeScript port is a dozen lines, and one for the port will look much the same:
 
 ```js
 import { readFileSync } from 'node:fs';

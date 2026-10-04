@@ -8,9 +8,10 @@ The adapter command is started once per snapshot with the snapshot file's bytes 
     0  assembled, refusals included: stdout holds {"payload": <base64 of the payload bytes, or null when refused>,
        "trace": <the trace>}
     2  rejected before assembly (R-17): stderr lists the problems in the port's words; stdout is not read
-    3  a tokenizer or renderer the port does not provide: stderr names it, e.g. "renderer x/v1 is not provided".
-       The case is skipped only when it uses a component the vendored README does not require; a case that uses
-       only required ones has failed (conformance/README.md, Reporting results)
+    3  a tokenizer or renderer the port does not provide: stderr names each one it lacks on a line of its own, as
+       "tokenizer <id> is not provided" or "renderer <id> is not provided". The case is skipped only when one it
+       names is optional, a component the vendored README does not require, that the case uses; otherwise, a
+       required one lacking or none named, it has failed (conformance/README.md, Reporting results)
 
 Any other exit code, or stdout that is not such an object, fails the case with stderr as the detail. The runner
 compares as conformance/README.md, Running a case, says: the payload byte for byte, the trace field for field
@@ -177,26 +178,31 @@ def required_components(conformance: Path) -> set[str]:
     return set(re.findall(r"^- `([^`]+)`", section, re.M))
 
 
-def optional_components(snapshot: Any, fields: tuple[str, ...], required: set[str]) -> list[str]:
-    """The optional components a snapshot names in these fields: an ID outside the required set. A missing or
-    non-string field names no component, so it makes nothing optional."""
+LACKING = re.compile(r"^(tokenizer|renderer) (\S+) is not provided$", re.M)
+
+
+def optional_lacking(snapshot: Any, fields: tuple[str, ...], required: set[str], text: str) -> list[str]:
+    """The optional components text says the port lacks, one "<kind> <id> is not provided" line each, that the
+    snapshot uses in these fields: an ID outside the required set. Reporting results skips a case for one of these
+    alone; a component the case does not use, or a required one, never makes a skip, whatever else the snapshot names."""
     named = {field: snapshot.get(field) for field in fields} if isinstance(snapshot, dict) else {}
-    return [f"{field} {value}" for field, value in named.items() if isinstance(value, str) and value and value not in required]
+    return [f"{kind} {id}" for kind, id in LACKING.findall(text or "") if named.get(kind) == id and id not in required]
 
 
 def unsupported(case: Path, fields: tuple[str, ...], required: set[str], stderr: str) -> dict[str, str]:
-    """Exit 3. Reporting results skips a case only for an optional component the port lacks; a case whose fields
-    name only required components has failed. A rejection looks at its renderer alone: no snapshot check needs a
-    tokenizer."""
+    """Exit 3. Reporting results skips a case only for an optional component the port lacks, whatever else it lacks;
+    a case the port lacks only required components for, or that names nothing it lacks, has failed. A rejection
+    looks at its renderer alone: no snapshot check needs a tokenizer."""
     try:
         snapshot = read_json(case / "snapshot.json")
     except ValueError:
         snapshot = None
-    optional = optional_components(snapshot, fields, required)
+    optional = optional_lacking(snapshot, fields, required, stderr)
     if optional:
-        return {"outcome": "skipped", "detail": stderr or f"uses the optional {', '.join(optional)}"}
-    lacking = stderr or "a tokenizer or renderer is not provided"
-    return {"outcome": "failed", "detail": f"a required component is not provided: {lacking}"}
+        return {"outcome": "skipped", "detail": "\n".join(f"{component} is not provided" for component in optional)}
+    if not LACKING.search(stderr or ""):
+        return {"outcome": "failed", "detail": f"exited 3 without naming a component it lacks: {stderr}".rstrip(": ")}
+    return {"outcome": "failed", "detail": f"a required component is not provided: {stderr}"}
 
 
 def run_case(adapter: Adapter, trace_validator: Any, case: Path, required: set[str]) -> dict[str, str]:

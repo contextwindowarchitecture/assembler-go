@@ -7,8 +7,8 @@
 Checks that the report validates against conformance_report.schema.json (when the jsonschema package is
 installed); that its contract names the lock's website commit and dirty flag; that cases and rejections list
 every directory under the vendored conformance cases and rejections, in id order, with the rules from each
-case.json; that no case is skipped unless it uses a component the vendored README does not require, since a
-port that lacks a required one has failed the case; and, unless --allow-failures, that every case passed and
+case.json; that every skipped row's detail names, as "<kind> <id> is not provided", an optional component its case
+uses, since a port that lacks only required ones has failed the case; and, unless --allow-failures, that every case passed and
 every rejection snapshot was rejected (conformance/README.md, Reporting results). CI runs it so a partial or
 stale report never lands.
 """
@@ -20,7 +20,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from conformance import LOCK, ROOT, ids, optional_components, read_json, required_components, schema_problem, utf16, validator_for  # noqa: E402
+from conformance import LOCK, ROOT, ids, optional_lacking, read_json, required_components, schema_problem, utf16, validator_for  # noqa: E402
 
 
 def check_rows(report: dict, kind: str, directory: Path, ok: str, required: set[str]) -> tuple[list[str], list[str]]:
@@ -41,8 +41,9 @@ def check_rows(report: dict, kind: str, directory: Path, ok: str, required: set[
         if row.get("id") in expected and row.get("outcome") == "skipped":
             snapshot = read_json(directory / row["id"] / "snapshot.json")
             fields = ("tokenizer", "renderer") if kind == "cases" else ("renderer",)
-            if not optional_components(snapshot, fields, required):
-                problems.append(f"{kind}: {row['id']} is skipped, but it uses only required components, so it has failed")
+            if not optional_lacking(snapshot, fields, required, row.get("detail", "")):
+                problems.append(f"{kind}: {row['id']} is skipped, but its detail names no optional component it uses as "
+                                "\"<kind> <id> is not provided\", so it has failed")
     failures = [f"{row.get('id')}: {row.get('outcome')}: {row.get('detail', '')}".rstrip(": ") for row in rows if row.get("outcome") != ok]
     return problems, failures
 
