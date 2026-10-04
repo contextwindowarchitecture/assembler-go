@@ -14,8 +14,10 @@ import (
 	"testing"
 )
 
-// Each pending case is a strict expected failure and leaves this set when it passes.
-var pending = map[string]bool{}
+// Each pending case is a strict expected failure and leaves this set when it passes. The blocks
+// cases use the optional renderer cwa-message-blocks/v1, which this port does not provide yet, so
+// they are skipped until it does.
+var pending = map[string]bool{"blocks-budget": true, "blocks-render": true}
 
 func TestConformanceCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")
@@ -103,27 +105,49 @@ func unsupportedOutcome(raw []byte, err error, fields ...string) caseOutcome {
 }
 
 // requiredComponents reads the tokenizers and renderers every implementation provides from the
-// vendored README: the bullets under its Tokenizers and renderers heading, as
-// scripts/conformance.py reads them.
+// vendored README: the bullets under its Tokenizers and renderers heading, before its Optional
+// heading, as scripts/conformance.py reads them.
 func requiredComponents() (map[string]bool, error) {
+	required, _, err := componentBullets()
+	return required, err
+}
+
+// publishedComponents reads every published tokenizer and renderer from the vendored README: the
+// bullets under its Tokenizers and renderers heading, the optional ones included.
+func publishedComponents() (map[string]bool, error) {
+	required, optional, err := componentBullets()
+	for id := range optional {
+		required[id] = true
+	}
+	return required, err
+}
+
+// componentBullets reads the README's Tokenizers and renderers section, which lists the required
+// components and then, under its Optional heading, the optional ones.
+func componentBullets() (required, optional map[string]bool, err error) {
 	const path = "vendor/cwa/conformance/README.md"
 	body, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	_, section, found := strings.Cut(string(body), "\n## Tokenizers and renderers\n")
 	if !found {
-		return nil, fmt.Errorf("%s has no Tokenizers and renderers section; re-vendor the contract", path)
+		return nil, nil, fmt.Errorf("%s has no Tokenizers and renderers section; re-vendor the contract", path)
 	}
 	section, _, _ = strings.Cut(section, "\n## ")
-	required := map[string]bool{}
-	for _, match := range requiredBullet.FindAllStringSubmatch(section, -1) {
-		required[match[1]] = true
+	before, after, _ := strings.Cut(section, "\n### Optional\n")
+	bullets := func(text string) map[string]bool {
+		ids := map[string]bool{}
+		for _, match := range requiredBullet.FindAllStringSubmatch(text, -1) {
+			ids[match[1]] = true
+		}
+		return ids
 	}
+	required, optional = bullets(before), bullets(after)
 	if len(required) == 0 {
-		return nil, fmt.Errorf("%s lists no tokenizers or renderers under Tokenizers and renderers", path)
+		return nil, nil, fmt.Errorf("%s lists no required tokenizers or renderers under Tokenizers and renderers", path)
 	}
-	return required, nil
+	return required, optional, nil
 }
 
 var requiredBullet = regexp.MustCompile("(?m)^- `([^`]+)`")
@@ -250,14 +274,19 @@ func TestCompareIgnoresRecoveryDetail(t *testing.T) {
 	}
 }
 
-// TestUnsupportedComponentCases follows the README's Reporting results. Every published case
-// uses only required tokenizers and renderers, so a port that reports the case's tokenizer or
-// renderer unsupported has failed it, never skipped it. A case that names an optional component
-// the port does not provide is skipped.
+// TestUnsupportedComponentCases follows the README's Reporting results. A case that uses only
+// required tokenizers and renderers is never skipped: a port that reports one of them unsupported
+// has failed it. A case that names an optional component is skipped when the port reports a
+// component unsupported, since the runner, like scripts/conformance.py, reads which components a
+// case uses from its snapshot.
 func TestUnsupportedComponentCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")
 	if err != nil || len(paths) == 0 {
 		t.Fatalf("no vendored cases: %v", err)
+	}
+	required, err := requiredComponents()
+	if err != nil {
+		t.Fatal(err)
 	}
 	for _, path := range paths {
 		raw, err := os.ReadFile(path)
@@ -268,10 +297,14 @@ func TestUnsupportedComponentCases(t *testing.T) {
 		if err := json.Unmarshal(raw, &named); err != nil {
 			t.Fatal(err)
 		}
+		want := "failed"
+		if !required[named.Tokenizer] || !required[named.Renderer] {
+			want = "skipped"
+		}
 		for _, lacking := range []UnsupportedComponentError{{"tokenizer", named.Tokenizer}, {"renderer", named.Renderer}} {
 			without := func([]byte, Options) (Result, error) { return Result{}, &lacking }
-			if got := runCase(filepath.Dir(path), without); got.outcome != "failed" {
-				t.Errorf("%s without its %s %s: %s, want failed", filepath.Base(filepath.Dir(path)), lacking.Component, lacking.ID, got.outcome)
+			if got := runCase(filepath.Dir(path), without); got.outcome != want {
+				t.Errorf("%s without its %s %s: %s, want %s", filepath.Base(filepath.Dir(path)), lacking.Component, lacking.ID, got.outcome, want)
 			}
 		}
 	}
@@ -319,5 +352,27 @@ func TestRequiredComponents(t *testing.T) {
 	want := map[string]bool{"fixture-whitespace/v1": true, "estimate-utf8/v1": true, "fixture-xml/v1": true, "cwa-messages/v1": true}
 	if !reflect.DeepEqual(required, want) {
 		t.Fatalf("the README requires %v, want %v", required, want)
+	}
+}
+
+// TestPublishedComponents pins every published component the vendored README lists, the optional
+// ones included, since R-16 stops an application's component under any published ID, including
+// one this port does not provide. resolveTokenizer guards the published tokenizers, and Options
+// takes no renderer, so no application renderer can take a published renderer's ID. A re-vendor
+// that publishes another component fails here until the guard covers it.
+func TestPublishedComponents(t *testing.T) {
+	published, err := publishedComponents()
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{
+		"fixture-whitespace/v1": true, "estimate-utf8/v1": true,
+		"fixture-xml/v1": true, "cwa-messages/v1": true, "cwa-message-blocks/v1": true,
+	}
+	if !reflect.DeepEqual(published, want) {
+		t.Fatalf("the README publishes %v, want %v", published, want)
+	}
+	if fields := reflect.VisibleFields(reflect.TypeOf(Options{})); len(fields) != 1 || fields[0].Name != "Tokenizers" {
+		t.Fatal("Options takes more than tokenizers: guard every published renderer ID as resolveTokenizer guards tokenizers")
 	}
 }

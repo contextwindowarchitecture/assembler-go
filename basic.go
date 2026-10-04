@@ -43,8 +43,9 @@ func featureGap(name string) error { return fmt.Errorf("assembly feature not imp
 
 // resolveTokenizer stops the call before assembly when the application supplies a tokenizer under
 // a published tokenizer's id, whatever id the snapshot names, so a trace that names a published
-// tokenizer always means its published count (R-16). The guarded ids are the ones the README's
-// Tokenizers and renderers lists, including any this port does not provide.
+// tokenizer always means its published count (R-16). The guarded ids are the tokenizers the
+// README's Tokenizers and renderers lists, the optional ones included, whether or not this port
+// provides them.
 func resolveTokenizer(id string, options Options) (Tokenizer, error) {
 	for _, builtin := range []string{"fixture-whitespace/v1", "estimate-utf8/v1"} {
 		if _, exists := options.Tokenizers[builtin]; exists {
@@ -283,14 +284,7 @@ func renderBasicXML(snapshot map[string]any, items []*basicItem, tokenizer Token
 		placement := asObject(rawPlacement)
 		slot := asString(placement["slot"])
 		tag := strings.TrimPrefix(asString(placement["wrap"]), "xml:")
-		placed := []*basicItem{}
-		for _, item := range items {
-			if item.slot == slot {
-				placed = append(placed, item)
-			}
-		}
-		sort.Slice(placed, func(i, j int) bool { return utf16Less(placed[i].id, placed[j].id) })
-		for _, item := range placed {
+		for _, item := range placementItems(items, slot) {
 			payload.WriteString("<")
 			payload.WriteString(tag)
 			payload.WriteString(" id=\"")

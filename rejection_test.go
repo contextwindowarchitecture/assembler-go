@@ -66,13 +66,16 @@ func TestValidSnapshotIsNotRejected(t *testing.T) {
 
 // TestUnsupportedComponentRejections follows the README's Reporting results. A rejection case is
 // skipped only when the port does not provide its renderer and that renderer is optional, as it
-// is when a case breaks an optional renderer's check; no snapshot check needs a tokenizer. Every
-// published rejection uses required components, so a port that reports one of them unsupported
-// has failed the case.
+// is when a case breaks an optional renderer's check; no snapshot check needs a tokenizer. A port
+// that reports a component of a rejection with a required renderer unsupported has failed the case.
 func TestUnsupportedComponentRejections(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/rejections/*/snapshot.json")
 	if err != nil || len(paths) == 0 {
 		t.Fatalf("no vendored rejection cases: %v", err)
+	}
+	required, err := requiredComponents()
+	if err != nil {
+		t.Fatal(err)
 	}
 	for _, path := range paths {
 		raw, err := os.ReadFile(path)
@@ -83,15 +86,24 @@ func TestUnsupportedComponentRejections(t *testing.T) {
 		if err := json.Unmarshal(raw, &named); err != nil {
 			t.Fatal(err)
 		}
+		ids := map[string]string{}
 		for _, component := range []string{"tokenizer", "renderer"} {
 			var id string
 			if err := json.Unmarshal(named[component], &id); err != nil {
 				t.Fatalf("%s names no %s: %v", path, component, err)
 			}
+			ids[component] = id
+		}
+		want := "failed"
+		if !required[ids["renderer"]] {
+			want = "skipped"
+		}
+		for _, component := range []string{"tokenizer", "renderer"} {
+			id := ids[component]
 			lacking := &UnsupportedComponentError{Component: component, ID: id}
 			without := func([]byte, Options) (Result, error) { return Result{}, lacking }
-			if got := runRejection(filepath.Dir(path), without); got.outcome != "failed" {
-				t.Errorf("%s without its %s %s: %s, want failed", filepath.Base(filepath.Dir(path)), component, id, got.outcome)
+			if got := runRejection(filepath.Dir(path), without); got.outcome != want {
+				t.Errorf("%s without its %s %s: %s, want %s", filepath.Base(filepath.Dir(path)), component, id, got.outcome, want)
 			}
 		}
 	}

@@ -92,8 +92,21 @@ func placementItems(items []*basicItem, slot string) []*basicItem {
 			selected = append(selected, item)
 		}
 	}
-	sort.Slice(selected, func(i, j int) bool { return utf16Less(selected[i].id, selected[j].id) })
+	sort.Slice(selected, func(i, j int) bool { return placementLess(selected[i], selected[j]) })
 	return selected
+}
+
+// placementLess orders the items of one placement by id, in UTF-16 code units, except in
+// interaction.history, whose turns render in the order they were said: by freshness compared as
+// instants at full precision, and by id only among turns said at the same instant (R-7; README,
+// Ordering). Admission has already checked every freshness, so the comparison cannot fail here.
+func placementLess(left, right *basicItem) bool {
+	if left.slot == "interaction.history" && right.slot == "interaction.history" {
+		if cmp, _ := compareInstants(asString(left.data["freshness"]), asString(right.data["freshness"])); cmp != 0 {
+			return cmp < 0
+		}
+	}
+	return utf16Less(left.id, right.id)
 }
 
 func messageXML(item *basicItem, tag string) string {
