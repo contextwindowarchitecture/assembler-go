@@ -5,8 +5,9 @@ type Tokenizer func(string) int
 
 // Options supplies the application's own tokenizers for one assembly call, keyed by id. A
 // tokenizer under a published tokenizer's id stops the call before assembly, with no result (R-16).
-// It has no field for a renderer: only the published fixture-xml/v1 and cwa-messages/v1 render, so
-// the stop R-16 also puts on an application renderer under a published id cannot arise.
+// It has no field for a renderer: only the published fixture-xml/v1 and cwa-messages/v1, and the
+// optional cwa-message-blocks/v1, render, so the stop R-16 also puts on an application renderer
+// under a published id cannot arise.
 type Options struct {
 	Tokenizers map[string]Tokenizer
 }

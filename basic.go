@@ -71,7 +71,7 @@ func assembleBasic(snapshot map[string]any, options Options) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	if rendererID != "fixture-xml/v1" && rendererID != "cwa-messages/v1" {
+	if rendererID != "fixture-xml/v1" && !messageRenderer(rendererID) {
 		return Result{}, &UnsupportedComponentError{Component: "renderer", ID: rendererID}
 	}
 	items, trace, err := prepareBasic(snapshot, tokenizer, tokenizerID, rendererID)

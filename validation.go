@@ -249,7 +249,8 @@ func checkProfile(snapshot map[string]any) error {
 		return reject("parser profile omits governance.output_contract")
 	}
 	renderer := asString(snapshot["renderer"])
-	if renderer != "fixture-xml/v1" && renderer != "cwa-messages/v1" {
+	// cwa-message-blocks/v1 realizes exactly the profiles cwa-messages/v1 realizes.
+	if renderer != "fixture-xml/v1" && !messageRenderer(renderer) {
 		return nil
 	}
 	seenXML := false

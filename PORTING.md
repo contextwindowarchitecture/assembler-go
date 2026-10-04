@@ -55,7 +55,7 @@ This copies the contract into `vendor/cwa/` and writes `vendor/cwa.lock.json`: a
 
 | Vendored path | What it is |
 | --- | --- |
-| `conformance/README.md` | The algorithm. Read it first and keep it open: trace ordering, the digest, conflicts, supersession, deduplication, source diversity, the fitting steps, the snapshot checks, the required tokenizers and renderers and the optional ones, and the report format |
+| `conformance/README.md` | The algorithm. Read it first and keep it open: trace ordering, the digest, conflicts, supersession, deduplication, source diversity, the fitting steps, the snapshot checks, the required tokenizers and renderers and the optional `cwa-message-blocks/v1`, and the report format |
 | `contract/requirements.json` | R-1 to R-26, which the README cites on nearly every line |
 | `contract/reasons.json` | Every exclusion and refusal code, in the order R-21 ranks them |
 | `contract/slot-defaults.json` | Each slot's default authority, tier and policy fields (R-3) |
@@ -151,7 +151,7 @@ Every row is a place where languages disagree, and the cases were written to cat
 | Numbers | Read every number as the nearest double before comparing; integers beyond 2^53 round and may tie; a number outside the double range rejects the snapshot, and must not crash the parser | Numbers | `threshold-beyond-2-53`, rejection `number-out-of-range` |
 | Lone surrogates | Reject before assembly. Some parsers, Go's `encoding/json` among them, replace an unpaired surrogate escape with U+FFFD silently, so check the raw text | Snapshot checks | rejection `unpaired-surrogate` |
 | Timestamps | Instants at full precision, a fraction of any length, no leap seconds, offsets to 23:59. Compare a normalized pair of seconds and fraction, not a nanosecond time type | Timestamps, Ordering | `admission-reasons`, `supersede-observations`, `history-freshness-order` |
-| Canonical JSON | RFC 8785, including ECMAScript number formatting, for the snapshot digest, the ordering of rows that share an id, and the `cwa-messages/v1` payload. The registry lock and every case's `snapshot_digest` test it | Snapshot digest, Registry, Tokenizers and renderers | every case, `messages-render` |
+| Canonical JSON | RFC 8785, including ECMAScript number formatting, for the snapshot digest, the ordering of rows that share an id, and the `cwa-messages/v1` and `cwa-message-blocks/v1` payloads. The registry lock and every case's `snapshot_digest` test it | Snapshot digest, Registry, Tokenizers and renderers | every case, `messages-render`, `blocks-render` |
 | Determinism | Sort every output by the stated keys; never iterate a hash map or set into output | Running a case | every case |
 | No normalization | Deduplication keys compare code units: no NFC, no case folding, whatever the runtime's Unicode version | Deduplication | `dedupe-exact` |
 | Fitting | One fit test per reduction over the whole rendered payload, and the margin in integer arithmetic; shortcuts may not change a decision | Fitting | `budget-margin-rounding`, `budget-slot-floor` |

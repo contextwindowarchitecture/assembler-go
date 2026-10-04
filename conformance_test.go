@@ -14,10 +14,8 @@ import (
 	"testing"
 )
 
-// Each pending case is a strict expected failure and leaves this set when it passes. The blocks
-// cases use the optional renderer cwa-message-blocks/v1, which this port does not provide yet, so
-// they are skipped until it does.
-var pending = map[string]bool{"blocks-budget": true, "blocks-render": true}
+// Each pending case is a strict expected failure and leaves this set when it passes.
+var pending = map[string]bool{}
 
 func TestConformanceCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")

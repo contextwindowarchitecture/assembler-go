@@ -1,8 +1,10 @@
 package assembler
 
 import (
+	"encoding/json"
 	"reflect"
 	"regexp"
+	"strings"
 	"testing"
 )
 
@@ -120,3 +122,106 @@ func TestHistoryRendersInTheOrderSaid(t *testing.T) {
 }
 
 var renderedID = regexp.MustCompile(`id=\\?"([^"\\]+)\\?"`)
+
+// TestMessageBlocksRenderOneEntryPerOccurrence checks cwa-message-blocks/v1 against its README
+// rule: the request cwa-messages/v1 renders, except that the user message's content is one
+// {id, text} entry per xml: occurrence, each text exactly as cwa-messages/v1 writes it, and a
+// surfaced member's entry names its group in conflict, as a system entry does (R-7, R-11). The
+// payload's count sums the tokenizer's count of every entry's text, so estimate-utf8/v1, which
+// rounds each text up, counts more than for the joined text. Per-item tokens and compressed rows
+// count as in cwa-messages/v1.
+func TestMessageBlocksRenderOneEntryPerOccurrence(t *testing.T) {
+	snapshot := map[string]any{"profile": map[string]any{"placement": []any{
+		map[string]any{"slot": "governance.instructions", "wrap": "system"},
+		map[string]any{"slot": "governance.capabilities", "wrap": "tools"},
+		map[string]any{"slot": "governance.examples", "wrap": "xml:examples"},
+		map[string]any{"slot": "interaction.history", "wrap": "xml:history"},
+		map[string]any{"slot": "interaction.query", "wrap": "xml:query"},
+	}}}
+	item := func(id, slot, raw, conflictID, freshness string) *basicItem {
+		return &basicItem{id: id, slot: slot, body: escapeXML(raw), bodyRaw: raw,
+			initialBody: escapeXML(raw), initialRaw: raw, conflictID: conflictID,
+			data: map[string]any{"freshness": freshness}}
+	}
+	compressed := item("ex:1", "governance.examples", "Short & sweet.", "g-ex", "2026-09-22T11:00:00Z")
+	compressed.initialRaw = "A much longer example."
+	compressed.initialBody = compressed.initialRaw
+	compressed.variant = map[string]any{"id": "ex:1/short", "method": "summary"}
+	// A system entry holds the unescaped body, so its compressed row counts the raw texts.
+	policy := item("policy:b", "governance.instructions", "Refund <30 days & cite.", "", "2026-09-22T11:00:00Z")
+	policy.initialRaw = "Refund orders under thirty days & cite <every> source."
+	policy.initialBody = escapeXML(policy.initialRaw)
+	policy.variant = map[string]any{"id": "policy:b/short", "method": "summary"}
+	assistant := item("turn:2", "interaction.history", "Which order?", "", "2026-09-22T11:47:00Z")
+	assistant.data["lineage"] = "generated"
+	items := []*basicItem{
+		item("policy:a", "governance.instructions", "Cite a & <b> sources.", "g-pol", "2026-09-22T11:00:00Z"),
+		policy,
+		item("cap:x", "governance.capabilities", `{"name": "x"}`, "", "2026-09-22T11:00:00Z"),
+		compressed,
+		assistant,
+		item("turn:10", "interaction.history", "I bought it.", "", "2026-09-22T11:46:00Z"),
+		item("turn:3", "interaction.query", "Hi?", "", "2026-09-22T11:59:00Z"),
+	}
+
+	payload, included, count, err := renderBasic(snapshot, items, "cwa-message-blocks/v1", estimateUTF8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	texts := []string{
+		"<examples id=\"ex:1\" conflict=\"g-ex\">\nShort &amp; sweet.\n</examples>\n",
+		"<history id=\"turn:10\" speaker=\"user\">\nI bought it.\n</history>\n",
+		"<history id=\"turn:2\" speaker=\"assistant\">\nWhich order?\n</history>\n",
+		"<query id=\"turn:3\">\nHi?\n</query>\n",
+	}
+	want := `{"messages":[{"content":[` +
+		`{"conflict":"g-ex","id":"ex:1","text":"<examples id=\"ex:1\" conflict=\"g-ex\">\nShort &amp; sweet.\n</examples>\n"},` +
+		`{"id":"turn:10","text":"<history id=\"turn:10\" speaker=\"user\">\nI bought it.\n</history>\n"},` +
+		`{"id":"turn:2","text":"<history id=\"turn:2\" speaker=\"assistant\">\nWhich order?\n</history>\n"},` +
+		`{"id":"turn:3","text":"<query id=\"turn:3\">\nHi?\n</query>\n"}],"role":"user"}],` +
+		`"system":[{"conflict":"g-pol","id":"policy:a","text":"<conflict group=\"g-pol\">\nCite a & <b> sources.\n</conflict>"},` +
+		`{"id":"policy:b","text":"Refund <30 days & cite."}],` +
+		`"tools":[{"id":"cap:x","text":"{\"name\": \"x\"}"}]}`
+	if string(payload) != want {
+		t.Errorf("payload\n got %s\nwant %s", payload, want)
+	}
+
+	// Joined in order, the entries' texts are the content cwa-messages/v1 renders.
+	messages, messagesIncluded, joinedCount, err := renderBasic(snapshot, items, "cwa-messages/v1", estimateUTF8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded struct {
+		Messages []struct{ Content string } `json:"messages"`
+	}
+	if err := json.Unmarshal(messages, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	if joined := strings.Join(texts, ""); len(decoded.Messages) != 1 || decoded.Messages[0].Content != joined {
+		t.Errorf("cwa-messages/v1 content is not the joined entries: %+v", decoded.Messages)
+	}
+
+	// Each system, tool and message entry is counted on its own.
+	wantCount := estimateUTF8("<conflict group=\"g-pol\">\nCite a & <b> sources.\n</conflict>") +
+		estimateUTF8("Refund <30 days & cite.") + estimateUTF8(`{"name": "x"}`)
+	for _, text := range texts {
+		wantCount += estimateUTF8(text)
+	}
+	if count != wantCount || count <= joinedCount {
+		t.Errorf("input tokens = %d, want %d, above the joined count %d", count, wantCount, joinedCount)
+	}
+	if !reflect.DeepEqual(included, messagesIncluded) {
+		t.Errorf("included\n got %v\nwant %v", included, messagesIncluded)
+	}
+	rows, err := compressedRows(snapshot, items, "cwa-message-blocks/v1", estimateUTF8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	messagesRows, err := compressedRows(snapshot, items, "cwa-messages/v1", estimateUTF8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || !reflect.DeepEqual(rows, messagesRows) {
+		t.Errorf("compressed rows\n got %v\nwant %v", rows, messagesRows)
+	}
+}
