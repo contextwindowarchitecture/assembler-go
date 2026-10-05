@@ -43,7 +43,7 @@ Every reduction under budget pressure is its own fit test, and every fit test re
 ```sh
 go build -o /tmp/cwa-adapter ./cmd/adapter
 python3 scripts/conformance.py --command /tmp/cwa-adapter \
-  --name github.com/contextwindowarchitecture/assembler-go --version 0.1.0 --language Go
+  --name github.com/contextwindowarchitecture/assembler-go --version 0.0.1 --language Go
 python3 scripts/check_report.py
 ```
 
