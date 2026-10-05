@@ -15,9 +15,7 @@ import (
 )
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
-var pending = map[string]bool{
-	"admission-reasons": true,
-}
+var pending = map[string]bool{}
 
 func TestConformanceCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")

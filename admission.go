@@ -196,17 +196,15 @@ func (a *admissionPass) structuralReason(raw any) (string, bool) {
 			sort.Strings(missing)
 			return "missing_field:" + missing[0], false
 		}
-		if slot, ok := item["slot"].(string); ok {
-			if _, exists := a.slotDefaults[slot]; !exists {
-				return "unknown_slot", false
-			}
+		// A slot or authority outside its closed set is unknown whatever its JSON type: a number,
+		// null or an array also fails the schema, but these codes precede invalid_structure (R-1, R-21).
+		if _, exists := a.slotDefaults[slotString(item)]; !exists {
+			return "unknown_slot", false
 		}
-		if authority, ok := item["authority"].(string); ok {
-			switch authority {
-			case "governing", "user", "state", "reference_only", "observation", "generated", "untrusted":
-			default:
-				return "unknown_authority", false
-			}
+		switch item["authority"] {
+		case "governing", "user", "state", "reference_only", "observation", "generated", "untrusted":
+		default:
+			return "unknown_authority", false
 		}
 	}
 	if err := a.schema.Validate(raw); err != nil {

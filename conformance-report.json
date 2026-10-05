@@ -26,8 +26,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "the trace differs at /excluded/17/reason: expected \"unknown_authority\", got \"invalid_structure\""
+      "outcome": "passed"
     },
     {
       "id": "admission-route-slots",
