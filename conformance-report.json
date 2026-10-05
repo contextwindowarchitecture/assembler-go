@@ -5,7 +5,7 @@
     "language": "Go"
   },
   "contract": {
-    "website_commit": "fc51bf8a1efa8e8c12d23623a8d28de29242b6de",
+    "website_commit": "c0f3f43056a89d207d86a56c5e634005dc769fa5",
     "dirty": false
   },
   "cases": [
@@ -26,7 +26,8 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "passed"
+      "outcome": "failed",
+      "detail": "the trace differs at /excluded/17/reason: expected \"unknown_authority\", got \"invalid_structure\""
     },
     {
       "id": "admission-route-slots",
