@@ -1,6 +1,6 @@
 # Porting the CWA assembler to a new language
 
-This template starts a CWA assembler in any language the way the Python reference assembler and the TypeScript assembler were built: from the published contract alone, test-first, with every conformance case as a test and a committed conformance report the website imports. Follow the steps in order. AGENTS.md holds the standing rules; this file is the guide.
+This template starts a CWA assembler in any language the way the Python reference assembler and the TypeScript assembler were built: from the published contract alone, test-first, with every conformance case as a test and a committed conformance report the specification repository lists. Follow the steps in order. AGENTS.md holds the standing rules; this file is the guide.
 
 ## What a port is
 
@@ -25,7 +25,7 @@ A port is conformant when every published case's payload matches byte for byte a
 
 - git, with commits signed off (`git commit -s`); the maintainer's commit hook requires it.
 - Python 3.10 or newer for the three bootstrap scripts under `scripts/`. They use the standard library; the `jsonschema` package is optional and adds schema validation to two of them.
-- A checkout of the website repository beside this one (`../website`), at the commit to vendor.
+- A checkout of the specification repository, [contextwindowarchitecture/contextwindowarchitecture](https://github.com/contextwindowarchitecture/contextwindowarchitecture), beside this one (`../contextwindowarchitecture`), at the commit to vendor. The contract is written there; the website copies it too, but is not its source.
 - The language's toolchain, and a JSON Schema 2020-12 validator for it. Check the portability checklist below before choosing one: the published patterns need ECMAScript regex semantics.
 
 ## Step 1: make the repository
@@ -47,11 +47,11 @@ A port is conformant when every published case's payload matches byte for byte a
 ## Step 2: vendor the contract
 
 ```sh
-python3 scripts/vendor_contract.py --website ../website
+python3 scripts/vendor_contract.py --spec ../contextwindowarchitecture
 python3 scripts/vendor_contract.py --verify
 ```
 
-This copies the contract into `vendor/cwa/` and writes `vendor/cwa.lock.json`: about 250 files, most of them case fixtures. Vendor from a committed website state; the lock records `dirty: true` otherwise, and the website then counts every case as stale. Commit as `build(contract): vendor website <short sha>`.
+This copies the contract into `vendor/cwa/` and writes `vendor/cwa.lock.json`: about 290 files, most of them case fixtures, each at the path it has in the specification repository. The lock records that repository as owner/name, from the checkout's `origin` remote, and the commit (`repository`, `spec_commit`); the report's `contract` repeats both. Vendor from a committed state; the lock records `dirty: true` otherwise, and every case then counts as stale. Commit as `build(contract): vendor spec <short sha>`.
 
 | Vendored path | What it is |
 | --- | --- |
@@ -129,15 +129,15 @@ try {
 
 The runner compares exactly as a native runner must, validates each trace against `trace.schema.json` when `jsonschema` is installed, writes the report, and exits 1 unless everything passed. `python3 scripts/check_report.py` then checks the committed report is complete and well-formed; pass `--allow-failures` while `PENDING` is not empty. Once the port has a native runner, the report it writes must satisfy the same checker.
 
-## Step 6: wire the port into the website
+## Step 6: list the port in the specification repository
 
-The Assembler page shows one row per implementation and counts, per requirement, the cases each one passes. Adding a port takes one import and four small edits in the website repository:
+The specification repository's `implementations/` holds the report of each listed implementation, and the website's Assembler page shows them, one row per implementation, counting per requirement the cases each one passes. To list a port (conformance/README.md, Reporting results):
 
-1. Make sure the port is a git repository with a commit and an `origin` remote: the import names the repository from the remote and the run from the commit. The report must name a clean website commit that the website checkout has.
-2. Import: `node scripts/import-conformance-report.mjs ../assembler-go contract/assembler-go-conformance.json`.
-3. Add `{ label: 'Go', file: 'contract/assembler-go-conformance.json' }` to `IMPLEMENTATIONS` in `scripts/conformance-reports.mjs`, and the same pair to `IMPORTED` in `tests/website.test.mjs`.
-4. Add the file to the sources-of-truth table in the website README, and update the two sentences that name the implementations: the matrix note on `assembler.html` and the Reporting results section of `conformance/README.md`.
-5. `npm run build:contract`, `npm test`, `python3 conformance/check.py`, then commit. Re-import after every run of the port that changes its report.
+1. Make sure the port is a clean git repository with a commit and an `origin` remote, and that its report names a commit of the specification repository: the import names the repository from the remote and the run from the commit.
+2. In a checkout of the specification repository: `python3 conformance/import_report.py ../assembler-go go --label Go`.
+3. Open a pull request there with the files it writes under `implementations/`. Its CI checks the entry, and that the stored report is the `conformance-report.json` this repository publishes at the stored commit. The Assembler page shows the entry once the website takes that commit.
+
+Re-import after every run of the port that changes its report.
 
 ## Portability checklist
 

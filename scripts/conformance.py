@@ -37,9 +37,6 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = ROOT / "vendor" / "cwa.lock.json"
 SCHEMAS = ROOT / "vendor" / "cwa" / "schema"
-# The repository the vendored cases come from, as owner/name, which the report's contract names beside the lock's commit
-# (Reporting results). The lock does not record it, so it is named here.
-CONTRACT_REPOSITORY = "contextwindowarchitecture/website"
 MISSING = object()
 
 
@@ -254,8 +251,8 @@ def run_rejection(adapter: Adapter, case: Path, required: set[str]) -> dict[str,
 
 
 def contract(lock: dict) -> dict:
-    """The report's contract member: the repository and commit the vendored cases came from, and whether that checkout was dirty."""
-    return {"repository": CONTRACT_REPOSITORY, "commit": lock["website_commit"], "dirty": lock["dirty"]}
+    """The report's contract member: the repository and commit the vendored cases came from, and whether that checkout was dirty, as the lock records them."""
+    return {"repository": lock["repository"], "commit": lock["spec_commit"], "dirty": lock["dirty"]}
 
 
 def ids(directory: Path) -> list[str]:
@@ -274,7 +271,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if not LOCK.exists():
-        sys.exit("vendor/cwa.lock.json does not exist; run scripts/vendor_contract.py --website <checkout> first")
+        sys.exit("vendor/cwa.lock.json does not exist; run scripts/vendor_contract.py --spec <checkout> first")
     lock = read_json(LOCK)
     adapter = Adapter(shlex.split(args.command), args.timeout)
     trace_validator = validator_for("trace.schema.json")

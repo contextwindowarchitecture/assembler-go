@@ -1,5 +1,6 @@
 {
-  "website_commit": "7ef12765e79906a1cb95529cd93747c8a0389221",
+  "repository": "contextwindowarchitecture/website",
+  "spec_commit": "7ef12765e79906a1cb95529cd93747c8a0389221",
   "dirty": false,
   "files": {
     "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",

@@ -70,7 +70,7 @@ This runs every vendored case and rejection snapshot as `conformance/README.md` 
 
 ## The contract
 
-`vendor/cwa/` holds the published contract this implementation follows: the schemas, the contract data and the conformance cases, copied from the website repository. `vendor/cwa.lock.json` pins each file by SHA-256 and records the website commit. It is Apache-2.0 licensed; see `vendor/cwa/LICENSE` and `vendor/cwa/NOTICE`.
+`vendor/cwa/` holds the published contract this implementation follows: the schemas, the contract data and the conformance cases, copied from the specification repository, [contextwindowarchitecture/contextwindowarchitecture](https://github.com/contextwindowarchitecture/contextwindowarchitecture), where every file sits at the same path. `vendor/cwa.lock.json` pins each file by SHA-256 and records that repository and the commit the files came from. It is Apache-2.0 licensed; see `vendor/cwa/LICENSE` and `vendor/cwa/NOTICE`.
 
 See [AGENTS.md](AGENTS.md) for the working rules.
 
@@ -85,8 +85,9 @@ Copyright 2026 Melvin Hillsman
 This product is licensed under the Apache License, Version 2.0 (see LICENSE).
 
 vendor/cwa/ holds the published CWA JSON Schemas, contract data and conformance cases this implementation
-follows. They come from the Context Window Architecture specification and website, Copyright 2026 Melvin
-Hillsman, also licensed under the Apache License, Version 2.0; see vendor/cwa/LICENSE and vendor/cwa/NOTICE.
+follows. They come from the Context Window Architecture specification repository,
+github.com/contextwindowarchitecture/contextwindowarchitecture, Copyright 2026 Melvin Hillsman, also licensed
+under the Apache License, Version 2.0; see vendor/cwa/LICENSE and vendor/cwa/NOTICE.
 """
 
 # The paragraph in AGENTS.md that points at this script, and what it becomes once the port is named.
@@ -108,7 +109,7 @@ def replace(path: Path, substitutions: dict[str, str]) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--language", required=True, help="the language, as the website names it, e.g. Go or TypeScript")
+    parser.add_argument("--language", required=True, help="the language, as the specification's list of implementations names it, e.g. Go or TypeScript")
     parser.add_argument("--package", required=True, help="the package name in the language's ecosystem")
     parser.add_argument("--slug", help="the lower-case language name in repository names; default: the language lower-cased")
     parser.add_argument("--repository", help="the GitHub repository as owner/name, e.g. contextwindowarchitecture/assembler-go")

@@ -5,8 +5,8 @@
     python3 scripts/check_report.py --allow-failures    # exit 1 on structural problems only, while cases are pending
 
 Checks that the report validates against conformance_report.schema.json (when the jsonschema package is
-installed); that its contract names the repository the cases come from and the lock's commit and dirty flag,
-as {"repository", "commit", "dirty"}; that cases and rejections list
+installed); that its contract names the lock's repository, commit and dirty flag, the specification repository
+and commit the cases come from, as {"repository", "commit", "dirty"}; that cases and rejections list
 every directory under the vendored conformance cases and rejections, in id order, with the rules from each
 case.json; that every skipped row's detail names, as "<kind> <id> is not provided", an optional component its case
 uses, since a port that lacks only required ones has failed the case; and, unless --allow-failures, that every case passed and

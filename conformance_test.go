@@ -246,12 +246,9 @@ func TestReportCurrent(t *testing.T) {
 	}
 }
 
-// contractRepository is the repository the vendored cases come from, as a report names it
-// (conformance/README.md, Reporting results). The lock does not record it yet.
-const contractRepository = "contextwindowarchitecture/website"
-
 // reportContract is the contract member conformance-report.json must carry: the repository and
-// commit the vendored cases came from, and whether that checkout was dirty, from vendor/cwa.lock.json.
+// commit the vendored cases came from, and whether that checkout was dirty, all from
+// vendor/cwa.lock.json (conformance/README.md, Reporting results).
 func reportContract(t *testing.T) map[string]any {
 	t.Helper()
 	raw, err := os.ReadFile("vendor/cwa.lock.json")
@@ -259,13 +256,14 @@ func reportContract(t *testing.T) map[string]any {
 		t.Fatal(err)
 	}
 	var lock struct {
-		WebsiteCommit string `json:"website_commit"`
-		Dirty         bool   `json:"dirty"`
+		Repository string `json:"repository"`
+		SpecCommit string `json:"spec_commit"`
+		Dirty      bool   `json:"dirty"`
 	}
 	if err := json.Unmarshal(raw, &lock); err != nil {
 		t.Fatal(err)
 	}
-	return map[string]any{"repository": contractRepository, "commit": lock.WebsiteCommit, "dirty": lock.Dirty}
+	return map[string]any{"repository": lock.Repository, "commit": lock.SpecCommit, "dirty": lock.Dirty}
 }
 
 // TestReportContract pins the report's contract member to the shape conformance_report.schema.json

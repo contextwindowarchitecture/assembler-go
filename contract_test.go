@@ -1,11 +1,15 @@
 package assembler
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
+	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -54,6 +58,38 @@ func TestContractLock(t *testing.T) {
 		if !seen[name] {
 			t.Errorf("locked file missing: %s", name)
 		}
+	}
+}
+
+// TestContractLockSource holds the lock to the source it names: the specification repository as
+// owner/name, the full commit the files came from there, and whether they were dirty, beside the
+// file hashes, and nothing else (the earlier website_commit included).
+func TestContractLockSource(t *testing.T) {
+	data, err := os.ReadFile("vendor/cwa.lock.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lock map[string]json.RawMessage
+	if err := json.Unmarshal(data, &lock); err != nil {
+		t.Fatal(err)
+	}
+	var keys []string
+	for key := range lock {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	if want := []string{"dirty", "files", "repository", "spec_commit"}; !reflect.DeepEqual(keys, want) {
+		t.Fatalf("lock members are %v, want %v", keys, want)
+	}
+	var repository, commit string
+	if err := json.Unmarshal(lock["repository"], &repository); err != nil || !regexp.MustCompile(`^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$`).MatchString(repository) {
+		t.Errorf("repository %s is not owner/name", lock["repository"])
+	}
+	if err := json.Unmarshal(lock["spec_commit"], &commit); err != nil || !regexp.MustCompile(`^[0-9a-f]{40}$`).MatchString(commit) {
+		t.Errorf("spec_commit %s is not a full commit", lock["spec_commit"])
+	}
+	if !bytes.Equal(lock["dirty"], []byte("false")) && !bytes.Equal(lock["dirty"], []byte("true")) {
+		t.Errorf("dirty %s is not a boolean", lock["dirty"])
 	}
 }
 
