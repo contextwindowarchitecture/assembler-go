@@ -37,6 +37,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 LOCK = ROOT / "vendor" / "cwa.lock.json"
 SCHEMAS = ROOT / "vendor" / "cwa" / "schema"
+# The repository the vendored cases come from, as owner/name, which the report's contract names beside the lock's commit
+# (Reporting results). The lock does not record it, so it is named here.
+CONTRACT_REPOSITORY = "contextwindowarchitecture/website"
 MISSING = object()
 
 
@@ -250,6 +253,11 @@ def run_rejection(adapter: Adapter, case: Path, required: set[str]) -> dict[str,
     return {"outcome": "failed", "detail": f"exited {code}: {stderr}" if code is not None else stderr}
 
 
+def contract(lock: dict) -> dict:
+    """The report's contract member: the repository and commit the vendored cases came from, and whether that checkout was dirty."""
+    return {"repository": CONTRACT_REPOSITORY, "commit": lock["website_commit"], "dirty": lock["dirty"]}
+
+
 def ids(directory: Path) -> list[str]:
     return sorted((p.name for p in directory.iterdir() if p.is_dir()), key=utf16) if directory.exists() else []
 
@@ -280,7 +288,7 @@ def main() -> int:
     required = required_components(args.conformance)
     report = {
         "implementation": implementation,
-        "contract": {"website_commit": lock["website_commit"], "dirty": lock["dirty"]},
+        "contract": contract(lock),
         "cases": [{"id": id, "rules": read_json(cases_dir / id / "case.json")["rules"], **run_case(adapter, trace_validator, cases_dir / id, required)}
                   for id in ids(cases_dir)],
         "rejections": [{"id": id, "rules": read_json(rejections_dir / id / "case.json")["rules"], **run_rejection(adapter, rejections_dir / id, required)}

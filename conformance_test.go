@@ -246,6 +246,89 @@ func TestReportCurrent(t *testing.T) {
 	}
 }
 
+// contractRepository is the repository the vendored cases come from, as a report names it
+// (conformance/README.md, Reporting results). The lock does not record it yet.
+const contractRepository = "contextwindowarchitecture/website"
+
+// reportContract is the contract member conformance-report.json must carry: the repository and
+// commit the vendored cases came from, and whether that checkout was dirty, from vendor/cwa.lock.json.
+func reportContract(t *testing.T) map[string]any {
+	t.Helper()
+	raw, err := os.ReadFile("vendor/cwa.lock.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var lock struct {
+		WebsiteCommit string `json:"website_commit"`
+		Dirty         bool   `json:"dirty"`
+	}
+	if err := json.Unmarshal(raw, &lock); err != nil {
+		t.Fatal(err)
+	}
+	return map[string]any{"repository": contractRepository, "commit": lock.WebsiteCommit, "dirty": lock.Dirty}
+}
+
+// TestReportContract pins the report's contract member to the shape conformance_report.schema.json
+// gives it: repository, commit and dirty, taken from the lock.
+func TestReportContract(t *testing.T) {
+	raw, err := os.ReadFile("conformance-report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report struct {
+		Contract map[string]any `json:"contract"`
+	}
+	if err := json.Unmarshal(raw, &report); err != nil {
+		t.Fatal(err)
+	}
+	if want := reportContract(t); !reflect.DeepEqual(report.Contract, want) {
+		t.Fatalf("contract is %v, want %v", report.Contract, want)
+	}
+}
+
+// TestCheckReportContract holds scripts/check_report.py to the same shape: it accepts the committed
+// report and rejects that report with its contract in the earlier {website_commit, dirty} shape.
+func TestCheckReportContract(t *testing.T) {
+	if testing.Short() {
+		t.Skip("runs scripts/check_report.py")
+	}
+	run := func(path string) (int, string) {
+		output, err := exec.Command("python3", "scripts/check_report.py", path).CombinedOutput()
+		var exit *exec.ExitError
+		if errors.As(err, &exit) {
+			return exit.ExitCode(), string(output)
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		return 0, string(output)
+	}
+	if code, output := run("conformance-report.json"); code != 0 {
+		t.Fatalf("check_report.py rejects the committed report: %s", output)
+	}
+	raw, err := os.ReadFile("conformance-report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report map[string]any
+	if err := json.Unmarshal(raw, &report); err != nil {
+		t.Fatal(err)
+	}
+	contract := reportContract(t)
+	report["contract"] = map[string]any{"website_commit": contract["commit"], "dirty": contract["dirty"]}
+	old, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(t.TempDir(), "report.json")
+	if err := os.WriteFile(path, append(old, '\n'), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if code, output := run(path); code == 0 || !strings.Contains(output, "contract") {
+		t.Fatalf("check_report.py accepts a report whose contract has the old shape (exit %d): %s", code, output)
+	}
+}
+
 // TestCompareIgnoresRecoveryDetail follows the README's Running a case: recovery.detail is free
 // text for people, removed with trace_id and timings before the trace comparison (R-23), while
 // recovery.action is still compared.
