@@ -2,7 +2,7 @@
 
 A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
 
-Status: the current report passes all 61 published assembly cases and rejects all 25 invalid snapshots, the ones that use the optional renderer `cwa-message-blocks/v1` included.
+Status: the current report passes all 62 published assembly cases and rejects all 25 invalid snapshots, the ones that use the optional renderer `cwa-message-blocks/v1` included.
 
 ## Install
 
