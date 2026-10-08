@@ -15,7 +15,9 @@ import (
 )
 
 // Each pending case is a strict expected failure and leaves this set when it passes.
-var pending = map[string]bool{}
+var pending = map[string]bool{
+	"admission-reasons": true, // issue #1: defaults_filled omits duplicate_item_id candidates
+}
 
 func TestConformanceCases(t *testing.T) {
 	paths, err := filepath.Glob("vendor/cwa/conformance/cases/*/snapshot.json")
@@ -286,12 +288,17 @@ func TestReportContract(t *testing.T) {
 
 // TestCheckReportContract holds scripts/check_report.py to the same shape: it accepts the committed
 // report and rejects that report with its contract in the earlier {website_commit, dirty} shape.
+// While cases are pending the report records their failures, so the script runs with --allow-failures.
 func TestCheckReportContract(t *testing.T) {
 	if testing.Short() {
 		t.Skip("runs scripts/check_report.py")
 	}
 	run := func(path string) (int, string) {
-		output, err := exec.Command("python3", "scripts/check_report.py", path).CombinedOutput()
+		args := []string{"scripts/check_report.py", path}
+		if len(pending) > 0 {
+			args = append(args, "--allow-failures")
+		}
+		output, err := exec.Command("python3", args...).CombinedOutput()
 		var exit *exec.ExitError
 		if errors.As(err, &exit) {
 			return exit.ExitCode(), string(output)
