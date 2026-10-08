@@ -141,19 +141,23 @@ func (a *admissionPass) addBatch(batch map[string]any) error {
 		} else if reason == "" && a.idCounts[id] > 1 {
 			reason = "duplicate_item_id"
 		}
-		if reason == "" && validStructure {
+		// Every schema-valid item from an admitted producer has its defaults filled and traced, even
+		// one already excluded as duplicate_item_id (README, Running a case; R-3).
+		if authenticated && validStructure {
 			copyItem := make(map[string]any, len(item)+6)
 			for key, value := range item {
 				copyItem[key] = value
 			}
 			a.fillDefaults(copyItem, id)
-			reason, err = a.admissionReason(copyItem, producerID, producerKind, objectValue(rule))
-			if err != nil {
-				return err
-			}
 			if reason == "" {
-				if err := a.include(copyItem, producerID); err != nil {
+				reason, err = a.admissionReason(copyItem, producerID, producerKind, objectValue(rule))
+				if err != nil {
 					return err
+				}
+				if reason == "" {
+					if err := a.include(copyItem, producerID); err != nil {
+						return err
+					}
 				}
 			}
 		}

@@ -27,8 +27,7 @@
         "R-21",
         "R-22"
       ],
-      "outcome": "failed",
-      "detail": "the trace differs at /defaults_filled/2/field: expected \"lineage\", got \"injection_risk\""
+      "outcome": "passed"
     },
     {
       "id": "admission-route-slots",
