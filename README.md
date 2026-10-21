@@ -51,16 +51,21 @@ It requires Go 1.26 or newer. The package is `assembler`.
 A support bot gets a question. The retriever found two chunks, and only one of them is relevant.
 
 ```go
-import assembler "github.com/contextwindowarchitecture/assembler-go"
+import (
+	"errors"
+	"fmt"
+
+	assembler "github.com/contextwindowarchitecture/assembler-go"
+)
 
 // snapshot is the frozen JSON: items, route policy, placement profile, budget, tokenizer, renderer and clock.
 result, err := assembler.Assemble(snapshot, assembler.Options{})
 var rejected *assembler.SnapshotRejectedError
 switch {
 case errors.As(err, &rejected):
-	// the snapshot is invalid: no payload and no trace; rejected.Problem says why
+	return err // the snapshot is invalid: no payload and no trace; rejected.Problem says why
 case err != nil:
-	// e.g. *assembler.UnsupportedComponentError for a tokenizer or renderer this package lacks
+	return err // e.g. *assembler.UnsupportedComponentError for a tokenizer or renderer this package lacks
 case result.Payload == nil:
 	fmt.Println("refused:", result.Trace["refused"].(map[string]any)["reason"])
 default:
