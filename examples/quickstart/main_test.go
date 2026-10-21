@@ -5,7 +5,9 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"reflect"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -99,5 +101,20 @@ func TestQuickstartRuns(t *testing.T) {
 	}
 	if s := out.String(); !strings.Contains(s, "kb:pricing  below_threshold") || !strings.Contains(s, "refused: evidence_required") {
 		t.Fatalf("output:\n%s", s)
+	}
+}
+
+func TestTheReadmeShowsWhatTheQuickstartPrints(t *testing.T) {
+	var out bytes.Buffer
+	if err := run(&out); err != nil {
+		t.Fatal(err)
+	}
+	readme, err := os.ReadFile("../../README.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shown := regexp.MustCompile("(?s)go run ./examples/quickstart\n```\n\n```text\n(.*?)```").FindSubmatch(readme)
+	if shown == nil || string(shown[1]) != out.String() {
+		t.Fatalf("README's quickstart output differs from what the example prints:\n%s", out.String())
 	}
 }

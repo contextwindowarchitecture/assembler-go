@@ -1,60 +1,228 @@
-# github.com/contextwindowarchitecture/assembler-go
+# assembler-go
 
-A Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) draft specification. It admits candidate items, resolves declared conflicts, fits them to a token budget, renders the payload and emits the trace.
+[![CI](https://github.com/contextwindowarchitecture/assembler-go/actions/workflows/ci.yml/badge.svg)](https://github.com/contextwindowarchitecture/assembler-go/actions/workflows/ci.yml)
+[![Go Reference](https://pkg.go.dev/badge/github.com/contextwindowarchitecture/assembler-go.svg)](https://pkg.go.dev/github.com/contextwindowarchitecture/assembler-go)
+[![Go 1.26+](https://img.shields.io/badge/go-1.26%2B-00ADD8)](go.mod)
+[![Spec: CWA draft](https://img.shields.io/badge/spec-CWA%20draft-orange)](https://contextwindowarchitecture.io/spec.html)
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green)](LICENSE)
 
-Status: the current report passes all 62 published assembly cases and rejects all 25 invalid snapshots, the ones that use the optional renderer `cwa-message-blocks/v1` included.
+Decide what your model sees, and keep a record of why.
+
+assembler-go is a Go assembler for the [Context Window Architecture](https://contextwindowarchitecture.io) (CWA) specification. You give it everything that *could* go into a model request. It gives back the exact request to send and a trace of every decision. When the request would break your policy, it gives back a refusal instead, before any model is called.
+
+## What is assembler-go
+
+Most applications build a prompt by gluing strings together: a system prompt, some retrieved chunks, the chat history and the question. That works until something goes wrong. Then nobody can say which chunks were sent, which were dropped to fit the context window, or why a retrieved web page ended up next to the system prompt.
+
+CWA treats the request as compiled output instead:
+
+1. **Producers** (your retriever, memory store, account service, chat history) propose typed **items** for named **slots**.
+2. **Your application** freezes those items, a versioned **route policy** and a **budget** into an immutable **snapshot**.
+3. **The assembler** turns the snapshot into a **payload**, the exact bytes to send, and a **trace** that says what went in, what was left out and why. When the snapshot can't produce a request that meets the policy, the assembler returns a **refusal** with the trace instead.
+
+```mermaid
+flowchart LR
+    P["Producers<br/>retriever, memory, state, chat"] --> A["Your application<br/>authenticates and freezes"]
+    A --> S["Snapshot<br/>items + policy + budget + clock"]
+    S --> X["assembler.Assemble"]
+    X -->|payload| M["Your model client"]
+    X -->|trace| T["What was sent, what was left out, and why"]
+    X -->|refusal| R["No model call"]
+```
+
+`Assemble` is a pure function. It reads nothing outside the snapshot, so the same snapshot always yields the same bytes and the same trace. You can store a snapshot and replay it later to debug an answer, review a policy change, or audit what a model was shown.
+
+assembler-go **is not** a retriever, an LLM client, an agent framework or a prompt template library. It sits between the code that gathers context and the code that calls the model, and works with whatever you already use on either side.
+
+## Status
+
+assembler-go is a draft that tracks the CWA draft specification (`cwa/draft`), so the API and snapshot format can change before v1. The committed [conformance report](conformance-report.json) records the result for each published case and rejection. There is no tagged version yet; install from the `draft-release` tag.
 
 ## Install
 
-Use Go 1.26 or newer. Once the maintainer publishes this repository, add the module with `go get github.com/contextwindowarchitecture/assembler-go`.
+```sh
+go get github.com/contextwindowarchitecture/assembler-go@draft-release
+```
 
-## Use
+It requires Go 1.26 or newer. The package is `assembler`.
 
-`Assemble(snapshotJSON, Options{})` accepts the frozen snapshot as JSON bytes. It returns a `Result` with rendered UTF-8 `Payload` and a `Trace`. A refusal has a nil payload. Invalid snapshots return `SnapshotRejectedError` with no result; unknown component ids return `UnsupportedComponentError`. Callers can supply their own tokenizers in `Options.Tokenizers` for one call, each under an id no published tokenizer uses. A tokenizer supplied under a published id, `fixture-whitespace/v1` or `estimate-utf8/v1`, stops the call before assembly: `Assemble` returns an error with no payload and no trace, whatever tokenizer the snapshot names, so a trace that names a published tokenizer always means its published count (R-16). Callers cannot supply a renderer: `Options` has no field for one, and the only renderers are the published `fixture-xml/v1` and `cwa-messages/v1` and the optional `cwa-message-blocks/v1`, so R-16's stop on an application renderer under a published id cannot arise, and a trace that names a published renderer always means its published rendering.
+## Quickstart
 
-With the same snapshot and component implementations, repeated calls produce identical payload bytes and trace fields; `trace_id` and `timings` are the only fields allowed to vary.
+A support bot gets a question. The retriever found two chunks, and only one of them is relevant.
 
-Admission applies the published schema, producer permissions, route eligibility, defaults and reason precedence. A producer may send only the slots the route lists for it, narrowed by its kind; an mcp tool specification meets the capability check only where the route lists `governance.capabilities` for its producer, and is `producer_slot_not_allowed` elsewhere. Declared instruction and fact conflicts resolve or escalate through route policy, followed by source supersession, exact deduplication and source diversity caps. Missing required slots, protected unplaced slots, unresolved conflicts and insufficient evidence refuse with a trace; evidence refusals distinguish missing producer context from budget omissions with or without variants. Protected items refuse when their own cap, slot cap or the protected-only payload exceeds budget. Per-item caps and slot caps run before budget pressure, which sheds droppable items, then compresses or omits compressible items in route order, counting the whole rendered payload after each change. During budget pressure, a reduction that would cross a slot's `min_tokens` freezes that slot; a payload still over budget refuses with `slot_floor_over_budget`. Both required renderers are available, and so is the optional `cwa-message-blocks/v1`. Each orders the items of a placement by id, except `interaction.history`, whose turns render in the order they were said: by `freshness` compared as instants at full precision, and by id only among turns said at the same instant (R-7); `included[]` follows the same order. In `cwa-messages/v1`, a surfaced conflict member placed with `system` or `tools` carries its mark in the entry's text, `<conflict group="...">` around the unescaped body, because that text is all the model receives; the mark counts only in `result.input_tokens`. `cwa-message-blocks/v1` renders the request `cwa-messages/v1` renders, except that the user message's content is an array with one entry per `xml:` occurrence, holding its `id` and its `text` exactly as `cwa-messages/v1` writes that occurrence, and a surfaced member's entry also names its group in `conflict`. Its count, in `result.input_tokens` and in every fit test, sums the tokenizer's count of every system, tools and message entry's text, each on its own, so a tokenizer that rounds each text up, as `estimate-utf8/v1` does, can fit fewer items than under `cwa-messages/v1`. The current case coverage is recorded in `conformance-report.json`.
+```go
+import assembler "github.com/contextwindowarchitecture/assembler-go"
 
-## Requirements
+// snapshot is the frozen JSON: items, route policy, placement profile, budget, tokenizer, renderer and clock.
+result, err := assembler.Assemble(snapshot, assembler.Options{})
+var rejected *assembler.SnapshotRejectedError
+switch {
+case errors.As(err, &rejected):
+	// the snapshot is invalid: no payload and no trace; rejected.Problem says why
+case err != nil:
+	// e.g. *assembler.UnsupportedComponentError for a tokenizer or renderer this package lacks
+case result.Payload == nil:
+	fmt.Println("refused:", result.Trace["refused"].(map[string]any)["reason"])
+default:
+	// result.Payload is {"system": [...], "tools": [...], "messages": [...]}
+}
+for _, row := range result.Trace["excluded"].([]any) {
+	fmt.Println(row.(map[string]any)["item_id"], row.(map[string]any)["reason"]) // kb:pricing below_threshold
+}
+```
 
-Go 1.26 or newer.
+[examples/quickstart](examples/quickstart/main.go) is the complete, runnable version, with the policy, the profile and the items written out:
 
-## Development
+```sh
+go run ./examples/quickstart
+```
+
+```text
+{
+  "system": "Answer from the evidence only, and say so when it does not cover the question.",
+  "messages": [
+    {
+      "content": "<evidence id=\"kb:refunds\">\nPro plans can be refunded in full within 30 days of purchase.\n</evidence>\n<query id=\"turn:1\">\nCan I get a refund on my Pro plan?\n</query>\n",
+      "role": "user"
+    }
+  ]
+}
+
+62 tokens; left out:
+  kb:pricing  below_threshold
+
+refused: evidence_required, recovery: request_context
+```
+
+The low-scoring chunk was left out, and the trace says why. When the retriever finds nothing, the route requires evidence, so the assembler refuses before any model is called. The trace then suggests what to do next.
+
+## Core concepts
+
+| Term | What it is |
+| --- | --- |
+| **Item** | One piece of candidate context, such as an instruction, a retrieved chunk, a memory, a tool result or a chat turn. It carries its source, version, freshness, authority and trust alongside its body. |
+| **Slot** | Where an item belongs: `governance.instructions`, `evidence.knowledge`, `interaction.history` and so on. Each slot has defaults for authority, protection and trust. |
+| **Producer** | The component that proposes items, such as a retriever, a memory store or a state service. The route policy limits which slots it may write. |
+| **Route policy** | Versioned rules for one route: which producers it accepts, relevance thresholds, caps, what to do about conflicts, and whether evidence is required. |
+| **Placement profile** | Versioned layout: where each slot renders in the request (system, tools, or a tagged block in the user message). |
+| **Snapshot** | Everything assembly may look at, frozen. The trace's `context.snapshot_digest` is its replay key. |
+| **Payload** | The exact bytes to send, written by a renderer. |
+| **Trace** | Every item included, compressed or excluded, each exclusion with a registered reason code, plus any conflicts and the token count. |
+| **Refusal** | No payload, a trace saying why, and, where one applies, a suggested recovery. |
+
+The [specification](https://contextwindowarchitecture.io/spec.html) defines each of these precisely.
+
+## Sending the payload to a model
+
+The `cwa-messages/v1` renderer writes a provider-neutral request as JSON:
+
+```json
+{"system": [{"id": "...", "text": "..."}], "tools": [{"id": "...", "text": "..."}], "messages": [{"role": "user", "content": "..."}]}
+```
+
+Only governance items reach `system` and `tools`. Everything else, prior turns included, is escaped into a single user message. Mapping that onto a provider's request takes a few lines. [examples/quickstart](examples/quickstart/main.go) has both mappings:
+
+- `toAnthropic` joins the system entries into one `system` string, as the Anthropic Messages API takes it, and passes `messages` through.
+- `toOpenAI` turns each system entry into a `{"role": "system"}` message ahead of the others, as OpenAI Chat Completions and compatible servers take it.
+
+If you use prompt caching, the optional `cwa-message-blocks/v1` renderer writes the same request, with the user message split into one `{id, text}` block per item. That lets you place a cache breakpoint at any item boundary. It counts each block on its own, so with a tokenizer that rounds each text up, such as `estimate-utf8/v1`, fewer items may fit than under `cwa-messages/v1`.
+
+## Framework-agnostic and compatibility
+
+- **No framework or SDK lock-in.** The input is JSON bytes and the output is bytes. Producers can be built on any retrieval stack, database or vector store, and the payload goes to whichever client you already use.
+- **Small.** It has three direct dependencies (`regexp2`, `santhosh-tekuri/jsonschema`, `ucarion/jcs`), no network access and no model calls. The schemas and contract tables are embedded.
+- **Go 1.26 and newer.** CI tests Go 1.26 and 1.27.
+- **Byte-identical across languages.** The [Python](https://github.com/contextwindowarchitecture/assembler-python), [TypeScript](https://github.com/contextwindowarchitecture/assembler-typescript) and [Rust](https://github.com/contextwindowarchitecture/assembler-rust) assemblers pass the same conformance cases. A snapshot frozen in one service can be assembled, or replayed, in another.
+- **Cost grows with budget pressure.** Every reduction under budget pressure is its own fit test, and every fit test renders and counts the whole payload. Keep the cost down at the source: send no more chunks than the route's budget can use, and bound slots with `max_per_source` or `max_tokens`.
+- **Built-in components.** Each one is named by id in the snapshot:
+
+| Kind | Id | Use it for |
+| --- | --- | --- |
+| Tokenizer | `estimate-utf8/v1` | A portable estimate (UTF-8 bytes ÷ 4, rounded up) for models without a local tokenizer; pair it with `budget.margin_percent` |
+| Tokenizer | `fixture-whitespace/v1` | Conformance tests only |
+| Renderer | `cwa-messages/v1` | Chat-style model APIs |
+| Renderer | `cwa-message-blocks/v1` | The same request with per-item blocks for prompt caching (optional in the spec) |
+| Renderer | `fixture-xml/v1` | Conformance tests: one plain-text block, with no system channel |
+
+For exact counts, pass your model's own tokenizer (see [Extending](#extending)).
+
+## Security model
+
+The assembler enforces the structural rules the spec gives it. It cannot see everything, so the "does not do" half of this section matters as much as the first.
+
+**What the assembler enforces:**
+
+- **Nothing outside the snapshot.** `Assemble` reads no network, files, environment, clock or model, so a request can be replayed and audited from its snapshot.
+- **Validation at the boundary.** A snapshot that fails its schemas or the spec's checks is rejected whole, and no payload is produced. `Assemble` takes the raw bytes, so validation sees the JSON as written.
+- **Producers stay in their lane.** The route policy lists which producer may write which slot, and a producer's kind narrows that further. For example, a retriever can only add evidence.
+- **Authority comes from the slot, not the wording.** Only governance items render into the system and tools channels. Retrieved text, tool output, memory and user turns are escaped into the user message, so a chunk containing `</evidence><system>…` stays inert text. Untrusted authority is accepted only in tool results, memory and history.
+- **Tools come from an allow-list.** A tool is offered only when the capability grant's producer, listed by the route, proposes it, and it is on the grant's allow-list.
+- **Refusal before the model call.** A missing required slot, protected content that won't fit, an unresolved conflict or missing evidence produces a refusal, not a degraded prompt.
+
+**What it does not do:**
+
+- **It doesn't authenticate producers.** Your application binds an identity to each batch. The assembler trusts that binding and checks only that the route lists the producer.
+- **It doesn't detect or neutralize prompt injection.** Marking and separating untrusted content limits where that content can appear. It does not stop a model from following instructions written inside it.
+- **It doesn't sanitize content or redact personal data.** Scope checks compare declared scope fields; they don't inspect bodies.
+- **It doesn't check tool calls.** It decides which tools are offered. Checking each call before it runs is the application's job.
+- **It doesn't pin profiles or policies.** assembler-go has no registry. Keep profile and route-policy versions pinned in your application, and deploy only profiles evaluated for your model.
+
+## Extending
+
+**Your own tokenizer.** A `Tokenizer` is a `func(string) int`. Pass it in `Options.Tokenizers` for one call, keyed by the id your snapshot's `tokenizer` names:
+
+```go
+chars := func(text string) int { return utf8.RuneCountInString(text) }
+result, err := assembler.Assemble(snapshot, assembler.Options{
+	Tokenizers: map[string]assembler.Tokenizer{"my-chars/v1": chars}, // snapshot "tokenizer": "my-chars/v1"
+})
+```
+
+The id can't be one the spec publishes (`fixture-whitespace/v1` or `estimate-utf8/v1`), because a trace naming a published tokenizer must mean that tokenizer's count. Load anything it needs before the call, since `Assemble` reads nothing else. If it estimates, reserve headroom with `budget.margin_percent`.
+
+**Renderers are fixed.** assembler-go takes no application renderers. `Options` has no field for one, and a snapshot must name one of the three built-in renderers.
+
+**Timings.** The trace has no stage timings. Time the call yourself if you need to.
+
+## Examples
+
+| Where | What |
+| --- | --- |
+| [examples/quickstart](examples/quickstart/main.go) | One request assembled, one refused, and the payload mapped onto two provider request shapes |
+| [contextwindowarchitecture/examples](https://github.com/contextwindowarchitecture/examples) | Five runnable apps built on CWA, from a help-center Q&A bot to a production-shaped agent. They're written in Python, but the snapshots and payloads are the same in Go. |
+| [contextwindowarchitecture/assembler-demo](https://github.com/contextwindowarchitecture/assembler-demo) | An inspector that runs the same question through this and the other three assemblers and shows every decision |
+| [contextwindowarchitecture/integrations](https://github.com/contextwindowarchitecture/integrations) | CWA placed inside existing systems |
+
+## Documentation
+
+| Read | For |
+| --- | --- |
+| [The specification](https://contextwindowarchitecture.io/spec.html) | What CWA requires, requirement by requirement |
+| [Producer guide](https://github.com/contextwindowarchitecture/contextwindowarchitecture/blob/main/guides/producers.md) | How to write the items you put in a snapshot |
+| [Assembler guide](https://github.com/contextwindowarchitecture/contextwindowarchitecture/blob/main/guides/assemblers.md) | How an assembler behaves, renderer by renderer |
+| [vendor/cwa/conformance/README.md](vendor/cwa/conformance/README.md) | Every ordering, tie-break and algorithm step this package follows |
+| [Package docs](https://pkg.go.dev/github.com/contextwindowarchitecture/assembler-go) | The API, and the exact rules for which error `Assemble` returns, and when |
+| [conformance-report.json](conformance-report.json) | The result for each conformance case |
+
+## Developing
 
 ```sh
 go mod download
 go build ./...
 go test ./...
-python3 scripts/vendor_contract.py --verify
-python3 scripts/check_report.py
 ```
 
-After a contract update, run `python3 scripts/generate_contract.py` to refresh the embedded schemas and policy tables.
+Changes are made test-first, one behavior per commit, from the published spec alone. The contract is vendored from the specification repository and never edited here. [CONTRIBUTING.md](CONTRIBUTING.md) covers the workflow, conformance and releases, [AGENTS.md](AGENTS.md) holds the full rules, and [PORTING.md](PORTING.md) is the guide this port was built from.
 
-CI (`.github/workflows/ci.yml`) runs the build and tests on Go 1.26 and 1.27, checks the committed conformance report, and checks the vendored contract against the specification repository at the commit `vendor/cwa.lock.json` pins. Each tag gets a GitHub release once CI passes on the tagged commit (`.github/workflows/release.yml`); its notes name that specification commit and list the tag's own commits, written by git-cliff. A tag that is not `vX.Y.Z` is a prerelease, and a tag pushed before the workflow existed is released with `gh workflow run release.yml -f tag=<tag>`.
+## Other implementations
 
-## Cost
-
-Every reduction under budget pressure is its own fit test, and every fit test renders and counts the whole payload (conformance/README.md, Fitting). Keep the cost down at the source, as the spec advises: send no more passages than the route's budget can use, and bound slots with `max_per_source` or `max_tokens`.
-
-## Conformance
-
-```sh
-go build -o /tmp/cwa-adapter ./cmd/adapter
-python3 scripts/conformance.py --command /tmp/cwa-adapter \
-  --name github.com/contextwindowarchitecture/assembler-go --version 0.0.1 --language Go
-python3 scripts/check_report.py
-```
-
-The bootstrap runner checks every vendored case and rejection snapshot as `conformance/README.md` describes. It writes `conformance-report.json` and exits 1 unless every case passed and every rejection snapshot was rejected. A case passes only when its payload matches byte for byte and its trace matches field for field, except `trace_id`, `timings` and `recovery.detail`. `conformance/README.md` requires every implementation to provide the four components its Tokenizers and renderers section lists before its Optional heading, `fixture-whitespace/v1`, `estimate-utf8/v1`, `fixture-xml/v1` and `cwa-messages/v1`, and the runner reads that list from there. The optional components follow under Optional: `cwa-message-blocks/v1`, which this port provides too, so it skips no case. A case the adapter reports as unsupported is skipped only when its snapshot names a tokenizer or renderer outside that list, and a rejection only when its renderer is outside it; one that uses only required components has failed (Reporting results), and `check_report.py` treats a skip of such a case as a problem. The native conformance tests in `go test ./...` hold each case and rejection to the same rule. Its `contract` names the repository and commit the cases came from, the lock's `repository` and `spec_commit`, and whether that checkout was dirty, as `{"repository", "commit", "dirty"}`; `check_report.py` rejects any other contract, the earlier `{"website_commit", "dirty"}` included, and `TestReportContract` and `TestCheckReportContract` hold the report and the checker to that shape. The committed report is the current run: a test fails when it goes stale.
-
-## The contract
-
-`vendor/cwa/` holds the published contract this implementation follows: the schemas, the contract data and the conformance cases, copied from the specification repository, [contextwindowarchitecture/contextwindowarchitecture](https://github.com/contextwindowarchitecture/contextwindowarchitecture), where every file sits at the same path. `vendor/cwa.lock.json` pins each file by SHA-256 and records that repository, as `repository`, and the commit the files came from, as `spec_commit`, with whether they were dirty there; `TestContractLockSource` holds the lock to those members. `python3 scripts/vendor_contract.py --spec ../contextwindowarchitecture` re-vendors from a checkout of it, taking the repository from its `origin` remote, and `--check` compares `vendor/cwa/` with the checkout file for file. It is Apache-2.0 licensed; see `vendor/cwa/LICENSE` and `vendor/cwa/NOTICE`.
-
-See [AGENTS.md](AGENTS.md) for the working rules.
+| Language | Repository |
+| --- | --- |
+| Python (reference) | [assembler-python](https://github.com/contextwindowarchitecture/assembler-python) |
+| TypeScript | [assembler-typescript](https://github.com/contextwindowarchitecture/assembler-typescript) |
+| Rust | [assembler-rust](https://github.com/contextwindowarchitecture/assembler-rust) |
+| A new language | [assembler-template](https://github.com/contextwindowarchitecture/assembler-template) |
 
 ## License
 
-Apache License 2.0, the same as the specification: see [LICENSE](LICENSE) and [NOTICE](NOTICE).
+Apache License 2.0, the same as the specification. See [LICENSE](LICENSE) and [NOTICE](NOTICE). The vendored contract under `vendor/cwa/` comes from the specification repository under the same license.
