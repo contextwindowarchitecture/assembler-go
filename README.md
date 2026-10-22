@@ -58,25 +58,29 @@ import (
 	assembler "github.com/contextwindowarchitecture/assembler-go"
 )
 
-// snapshot is the frozen JSON: items, route policy, placement profile, budget, tokenizer, renderer and clock.
-result, err := assembler.Assemble(snapshot, assembler.Options{})
-var rejected *assembler.SnapshotRejectedError
-switch {
-case errors.As(err, &rejected):
-	return err // the snapshot is invalid: no payload and no trace; rejected.Problem says why
-case err != nil:
-	return err // e.g. *assembler.UnsupportedComponentError for a tokenizer or renderer this package lacks
-case result.Payload == nil:
-	fmt.Println("refused:", result.Trace["refused"].(map[string]any)["reason"])
-default:
-	// result.Payload is {"system": [...], "tools": [...], "messages": [...]}
-}
-for _, row := range result.Trace["excluded"].([]any) {
-	fmt.Println(row.(map[string]any)["item_id"], row.(map[string]any)["reason"]) // kb:pricing below_threshold
+// assembleRequest assembles one request from snapshot, the frozen JSON: items, route policy, placement profile,
+// budget, tokenizer, renderer and clock.
+func assembleRequest(snapshot []byte) error {
+	result, err := assembler.Assemble(snapshot, assembler.Options{})
+	var rejected *assembler.SnapshotRejectedError
+	switch {
+	case errors.As(err, &rejected):
+		return err // the snapshot is invalid: no payload and no trace; rejected.Problem says why
+	case err != nil:
+		return err // e.g. *assembler.UnsupportedComponentError for a tokenizer or renderer this package lacks
+	case result.Payload == nil:
+		fmt.Println("refused:", result.Trace["refused"].(map[string]any)["reason"])
+	default:
+		// result.Payload is the request to send: {"messages": [...], "system": [...], "tools": [...]}
+	}
+	for _, row := range result.Trace["excluded"].([]any) {
+		fmt.Println(row.(map[string]any)["item_id"], row.(map[string]any)["reason"]) // kb:pricing below_threshold
+	}
+	return nil
 }
 ```
 
-[examples/quickstart](examples/quickstart/main.go) is the complete, runnable version, with the policy, the profile and the items written out:
+[examples/quickstart](examples/quickstart/main.go) is the complete, runnable version, with the policy, the profile and the items written out, and its tests run the function above:
 
 ```sh
 go run ./examples/quickstart
@@ -177,10 +181,19 @@ The assembler enforces the structural rules the spec gives it. It cannot see eve
 **Your own tokenizer.** A `Tokenizer` is a `func(string) int`. Pass it in `Options.Tokenizers` for one call, keyed by the id your snapshot's `tokenizer` names:
 
 ```go
-chars := func(text string) int { return utf8.RuneCountInString(text) }
-result, err := assembler.Assemble(snapshot, assembler.Options{
-	Tokenizers: map[string]assembler.Tokenizer{"my-chars/v1": chars}, // snapshot "tokenizer": "my-chars/v1"
-})
+import (
+	"unicode/utf8"
+
+	assembler "github.com/contextwindowarchitecture/assembler-go"
+)
+
+// assembleWithOwnTokenizer counts one token per character, for a snapshot whose "tokenizer" is "my-chars/v1".
+func assembleWithOwnTokenizer(snapshot []byte) (assembler.Result, error) {
+	chars := func(text string) int { return utf8.RuneCountInString(text) }
+	return assembler.Assemble(snapshot, assembler.Options{
+		Tokenizers: map[string]assembler.Tokenizer{"my-chars/v1": chars},
+	})
+}
 ```
 
 The id can't be one the spec publishes (`fixture-whitespace/v1` or `estimate-utf8/v1`), because a trace naming a published tokenizer must mean that tokenizer's count. Load anything it needs before the call, since `Assemble` reads nothing else. If it estimates, reserve headroom with `budget.margin_percent`.

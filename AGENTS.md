@@ -53,7 +53,7 @@ Everything here is the rule set the Python reference assembler and the TypeScrip
 - **The README is for application developers, not a log of work done.** Keep its sections, in this order: What is assembler-go, Status, Install, Quickstart, Core concepts, Sending the payload to a model, Framework-agnostic and compatibility, Security model, Extending, Examples, Documentation, Developing, Other implementations, License.
   - Status is three sentences at most and quotes no counts of cases, rejections or requirements. It links `conformance-report.json`, which holds them and cannot go stale.
   - A change a caller can see gets a sentence or two in the section it affects. The exact rule (which error is returned, and when) goes in the doc comment of the API it belongs to; how contributors run, vendor and release goes in CONTRIBUTING.md. Never append clauses to Status.
-  - Code in the README must run. Quickstart mirrors `examples/quickstart`, whose tests run it and pin the README's copy of its output.
+  - Code in the README must run. Quickstart mirrors `examples/quickstart`, whose tests run it and pin the README's copy of its output. Every `go` block in the README is a complete function, with its imports, copied verbatim from `examples/quickstart/readme.go`; `TestTheReadmeSnippetsAreCompiledCode` holds the two together and `TestTheReadmeSnippetsRun` runs them. Change a snippet in both places.
 - Use Mermaid diagrams wherever a flow, ordering or plan reads faster as a picture. Check that each parses with Mermaid 12 before committing.
 
 ## Commands
