@@ -123,10 +123,10 @@ The [specification](https://contextwindowarchitecture.io/spec.html) defines each
 
 ## Sending the payload to a model
 
-The `cwa-messages/v1` renderer writes a provider-neutral request as JSON:
+The `cwa-messages/v1` renderer writes a provider-neutral request as RFC 8785 canonical JSON, so its keys are sorted and the bytes are the same in every implementation:
 
 ```json
-{"system": [{"id": "...", "text": "..."}], "tools": [{"id": "...", "text": "..."}], "messages": [{"role": "user", "content": "..."}]}
+{"messages": [{"content": "...", "role": "user"}], "system": [{"id": "...", "text": "..."}], "tools": [{"id": "...", "text": "..."}]}
 ```
 
 Only governance items reach `system` and `tools`. Everything else, prior turns included, is escaped into a single user message. Mapping that onto a provider's request takes a few lines. The package doesn't export them; [examples/quickstart](examples/quickstart/main.go) defines both for you to copy:
